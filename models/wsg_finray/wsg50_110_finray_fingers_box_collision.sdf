@@ -80,7 +80,7 @@
       <pose relative_to="body"/>
     </frame>
     <link name="left_finger">
-      <pose>0.0 0.014 -0.013 1.57 3.14 0</pose>
+      <pose>-0.05 0.014 -0.013 1.57 3.14 0</pose>
       <inertial>
         <mass>0.05</mass>
         <inertia>
@@ -159,7 +159,7 @@
       </collision>
     </link>
     <link name="right_finger">
-      <pose>0 0.014 0.013 1.57 0 0</pose>
+      <pose>0.05 0.014 0.013 1.57 0 0</pose>
       <inertial>
         <mass>0.05</mass>
         <inertia>
@@ -237,47 +237,13 @@
         </surface>
       </collision>
     </link>
-    <joint name="left_finger_sliding_joint" type="prismatic">
+    <joint name="left_finger_sliding_joint" type="fixed">
       <parent>body</parent>
       <child>left_finger</child>
-      <axis>
-        <xyz>-1 0 0</xyz>
-        <!-- Drake attaches an actuator to all and only joints with a nonzero
-             effort limit. -->
-        <limit>
-          <lower>-0.055</lower>
-          <upper>0</upper>
-          <effort>80</effort>
-          <stiffness>15000</stiffness>
-        </limit>
-        <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>10</damping>
-          <friction>0</friction>
-        </dynamics>
-      </axis>
     </joint>
-    <joint name="right_finger_sliding_joint" type="prismatic">
+    <joint name="right_finger_sliding_joint" type="fixed">
       <parent>body</parent>
       <child>right_finger</child>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <!-- Drake attaches an actuator to all and only joints with a nonzero
-             effort limit. -->
-        <limit>
-          <lower>0</lower>
-          <upper>0.055</upper>
-          <effort>80</effort>
-          <stiffness>15000</stiffness>
-        </limit>
-        <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
-          <damping>10</damping>
-          <friction>0</friction>
-        </dynamics>
-      </axis>
     </joint>
     <static>0</static>
   </model>
