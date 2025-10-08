@@ -11,6 +11,24 @@ directives:
       rotation: !Rpy { deg: [0, 0, 0]}
 
 - add_model:
+    name: iiwa_right
+    file: package://bimanual/models/iiwa14_convex_decimated_collision.urdf
+    default_joint_positions:
+      iiwa_joint_1: [0]
+      iiwa_joint_2: [-0.4]
+      iiwa_joint_3: [0]
+      iiwa_joint_4: [-1.8]
+      iiwa_joint_5: [0]
+      iiwa_joint_6: [1.7]
+      iiwa_joint_7: [0.4]
+- add_weld:
+    parent: metal_table::body
+    child: iiwa_right::iiwa_link_0
+    X_PC:
+        translation: [0, -0.3, 0]
+        rotation: !Rpy { deg: [0, 0, 0]}
+
+- add_model:
     name: iiwa_left
     file: package://bimanual/models/iiwa14_convex_decimated_collision.urdf
     default_joint_positions:
@@ -36,25 +54,7 @@ directives:
     child: wsg_left::body
     X_PC:
         translation: [0, 0, 0.09]
-        rotation: !Rpy { deg: [90, 0, 90]}
-
-- add_model:
-    name: iiwa_right
-    file: package://bimanual/models/iiwa14_convex_decimated_collision.urdf
-    default_joint_positions:
-      iiwa_joint_1: [0]
-      iiwa_joint_2: [-0.4]
-      iiwa_joint_3: [0]
-      iiwa_joint_4: [-1.8]
-      iiwa_joint_5: [0]
-      iiwa_joint_6: [1.7]
-      iiwa_joint_7: [0.4]
-- add_weld:
-    parent: metal_table::body
-    child: iiwa_right::iiwa_link_0
-    X_PC:
-        translation: [0, -0.3, 0]
-        rotation: !Rpy { deg: [0, 0, 0]}
+        rotation: !Rpy { deg: [90, 0, 68]}
 
 - add_model:
     name: wsg_right
@@ -64,7 +64,7 @@ directives:
     child: wsg_right::body
     X_PC:
         translation: [0, 0, 0.09]
-        rotation: !Rpy { deg: [90, 0, 90]}
+        rotation: !Rpy { deg: [90, 0, 68]}
 
 - add_model:
     name: wooden_table
