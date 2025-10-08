@@ -25,7 +25,7 @@ directives:
     parent: metal_table::body
     child: iiwa_right::iiwa_link_0
     X_PC:
-        translation: [0, -0.3, 0]
+        translation: [0, -0.3825, 0]
         rotation: !Rpy { deg: [0, 0, 0]}
 
 - add_model:
@@ -43,7 +43,7 @@ directives:
     parent: metal_table::body
     child: iiwa_left::iiwa_link_0
     X_PC:
-        translation: [0, .3, 0]
+        translation: [0, 0.3825, 0]
         rotation: !Rpy { deg: [0, 0, 0]}
 
 - add_model:
