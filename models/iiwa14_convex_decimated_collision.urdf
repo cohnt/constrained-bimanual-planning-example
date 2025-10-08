@@ -524,4 +524,20 @@
       <drake:rotor_inertia value="0.0000454" />
     </actuator>
   </transmission>
+
+  <drake:collision_filter_group name="group_shoulder">
+    <drake:member link="iiwa_link_0"/>
+    <drake:member link="iiwa_link_1"/>
+    <drake:member link="iiwa_link_2"/>
+    <drake:member link="iiwa_link_3"/>
+    <drake:ignored_collision_filter_group name="group_shoulder"/>
+  </drake:collision_filter_group>
+
+  <drake:collision_filter_group name="group_wrist">
+    <drake:member link="iiwa_link_4"/>
+    <drake:member link="iiwa_link_5"/>
+    <drake:member link="iiwa_link_6"/>
+    <drake:member link="iiwa_link_7"/>
+    <drake:ignored_collision_filter_group name="group_wrist"/>
+  </drake:collision_filter_group>
 </robot>
