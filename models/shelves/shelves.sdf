@@ -78,7 +78,7 @@
             <pose>-0.0 0.0 0.0 1.57 0.0 0.0</pose>
             <geometry>
                 <mesh>
-                    <uri>package://models/models/shelves/IiwaShelvesUpdated.obj</uri>
+                    <uri>package://bimanual/models/shelves/IiwaShelvesUpdated.obj</uri>
                 </mesh>
             </geometry>
         </visual>

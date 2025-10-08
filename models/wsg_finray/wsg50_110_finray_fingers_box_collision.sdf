@@ -96,7 +96,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>package://models/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
+            <uri>package://bimanual/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
           </mesh>
         </geometry>
       </visual>
@@ -104,7 +104,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>package://models/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
+            <uri>package://bimanual/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
           </mesh>
         </geometry>
         <drake:proximity_properties>
@@ -175,7 +175,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>package://models/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
+            <uri>package://bimanual/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
           </mesh>
         </geometry>
       </visual>
@@ -183,7 +183,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>package://models/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
+            <uri>package://bimanual/models/wsg_finray/meshes/one_piece_wide_grasp_finray_finger.obj</uri>
           </mesh>
         </geometry>
         <drake:proximity_properties>

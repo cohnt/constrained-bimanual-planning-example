@@ -12,7 +12,7 @@ directives:
 
 - add_model:
     name: iiwa_left
-    file: package://drake_models/iiwa_description/urdf/iiwa14_spheres_collision.urdf
+    file: package://bimanual/models/iiwa14_convex_decimated_collision.urdf
     default_joint_positions:
       iiwa_joint_1: [0]
       iiwa_joint_2: [-0.4]
@@ -40,7 +40,7 @@ directives:
 
 - add_model:
     name: iiwa_right
-    file: package://drake_models/iiwa_description/urdf/iiwa14_spheres_collision.urdf
+    file: package://bimanual/models/iiwa14_convex_decimated_collision.urdf
     default_joint_positions:
       iiwa_joint_1: [0]
       iiwa_joint_2: [-0.4]
