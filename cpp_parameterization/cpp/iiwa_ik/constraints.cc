@@ -2,6 +2,8 @@
 
 #include "drake/solvers/mathematical_program.h"
 
+#include "iiwa_analytic_ik.cc"
+
 using namespace drake;
 
 class IiwaBimanualReachableConstraint final : public solvers::Constraint {

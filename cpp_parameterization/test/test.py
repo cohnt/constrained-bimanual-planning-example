@@ -1,8 +1,5 @@
-from pydrake.all import Constraint  # TODO MOVE TO MODULE INIT
-
 import sys
-sys.path.append("..")
-sys.path.append("build/iiwa_ik")
+sys.path.append("./python")
 
 from iiwa_ik import safe_arccos
 from pydrake.all import AutoDiffXd
@@ -12,6 +9,7 @@ x = AutoDiffXd(3)
 print(safe_arccos(x, -1, 1))
 
 from iiwa_ik import IiwaBimanualReachableConstraint, IiwaBimanualJointLimitConstraint
+from pydrake.all import Constraint
 import numpy as np
 
 print(isinstance(IiwaBimanualReachableConstraint(True, True, True), Constraint))

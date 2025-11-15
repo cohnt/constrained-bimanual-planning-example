@@ -3,12 +3,12 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 
-#include "constraints.cc"
 #include "parameterization.cc"
+#include "constraints.cc"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(iiwa_ik, m) {
+PYBIND11_MODULE(_iiwa_ik, m) {
 
     // TODO REMOVE
     m.def("safe_arccos",

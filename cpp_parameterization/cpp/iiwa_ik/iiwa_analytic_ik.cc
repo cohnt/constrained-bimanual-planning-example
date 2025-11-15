@@ -2,6 +2,9 @@
 
 #include "drake/math/autodiff.h"
 
+#ifndef IK_STUFF
+#define IK_STUFF
+
 using std::atan2;
 using std::cos;
 using std::max;
@@ -219,3 +222,5 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
                                       wrist_up,
                                       static_cast<Eigen::VectorX<T>*>(nullptr));
 }
+
+#endif
