@@ -58,7 +58,7 @@ template <typename T>
 Eigen::VectorX<T> IiwaBimanualParameterization(
     const Eigen::VectorX<T>& q_and_psi, const bool shoulder_up,
     const bool elbow_up, const bool wrist_up,
-    Eigen::VectorX<T>* unclipped_vals) {
+    Eigen::VectorX<T>* unclipped_vals, const double grasp_distance) {
   DRAKE_THROW_UNLESS(q_and_psi.size() == 8);
   const int GC2 = shoulder_up ? 1 : -1;
   const int GC4 = elbow_up ? 1 : -1;
@@ -82,7 +82,6 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
   const double d_ew = iiwa_d[4];
   const double d_wf = iiwa_d[6];
 
-  const double grasp_distance = 0.5;
   const Eigen::Vector3d base_translation(0, -0.765, 0);
   const double clip = 1.0;
 
@@ -222,8 +221,8 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
 template <typename T>
 Eigen::VectorX<T> IiwaBimanualParameterization(
     const Eigen::VectorX<T>& q_and_psi, const bool shoulder_up,
-    const bool elbow_up, const bool wrist_up, std::nullptr_t) {
+    const bool elbow_up, const bool wrist_up, std::nullptr_t, const double grasp_distance) {
     return IiwaBimanualParameterization(q_and_psi, shoulder_up, elbow_up,
                                         wrist_up,
-                                        static_cast<Eigen::VectorX<T>*>(nullptr));
+                                        static_cast<Eigen::VectorX<T>*>(nullptr), grasp_distance);
 }

@@ -8,7 +8,7 @@
  *  Maps q_and_psi (8-dimensional) to unclipped values (4-dimensional). */
 class IiwaBimanualReachableConstraint final : public drake::solvers::Constraint {
  public:
-  IiwaBimanualReachableConstraint(bool shoulder_up, bool elbow_up, bool wrist_up);
+  IiwaBimanualReachableConstraint(bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance);
 
  private:
   template <typename T>
@@ -23,6 +23,7 @@ class IiwaBimanualReachableConstraint final : public drake::solvers::Constraint 
               drake::VectorX<drake::symbolic::Expression>* y) const override;
 
   bool shoulder_up_{}, elbow_up_{}, wrist_up_{};
+  double grasp_distance_{};
 };
 
 /** Joint limit constraint for the subordinate arm of the bimanual IIWA. */
@@ -30,7 +31,7 @@ class IiwaBimanualJointLimitConstraint final : public drake::solvers::Constraint
  public:
   IiwaBimanualJointLimitConstraint(const Eigen::VectorXd& lower_bound,
                                    const Eigen::VectorXd& upper_bound,
-                                   bool shoulder_up, bool elbow_up, bool wrist_up);
+                                   bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance);
 
  private:
   template <typename T>
@@ -45,4 +46,5 @@ class IiwaBimanualJointLimitConstraint final : public drake::solvers::Constraint
               drake::VectorX<drake::symbolic::Expression>* y) const override;
 
   bool shoulder_up_{}, elbow_up_{}, wrist_up_{};
+  double grasp_distance_{};
 };

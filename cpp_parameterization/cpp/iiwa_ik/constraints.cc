@@ -1,14 +1,15 @@
 #include "constraints.h"
 
 IiwaBimanualReachableConstraint::IiwaBimanualReachableConstraint(
-    bool shoulder_up, bool elbow_up, bool wrist_up)
+    bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance)
     : drake::solvers::Constraint(4,  // output dimension
                                  8,  // input dimension
                                  Eigen::Vector4d::Constant(-1.0),
                                  Eigen::Vector4d::Constant(1.0)),
       shoulder_up_(shoulder_up),
       elbow_up_(elbow_up),
-      wrist_up_(wrist_up) {
+      wrist_up_(wrist_up),
+      grasp_distance_(grasp_distance) {
   set_is_thread_safe(true);
 }
 
@@ -16,7 +17,7 @@ template <typename T>
 void IiwaBimanualReachableConstraint::DoEvalGeneric(
     const Eigen::Ref<const Eigen::VectorX<T>>& q, Eigen::VectorX<T>* y) const {
   Eigen::VectorX<T> unclipped;
-  IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, &unclipped);
+  IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, &unclipped, grasp_distance_);
   *y = unclipped;  // length 4
 }
 
@@ -42,11 +43,12 @@ void IiwaBimanualReachableConstraint::DoEval(
 IiwaBimanualJointLimitConstraint::IiwaBimanualJointLimitConstraint(
     const Eigen::VectorXd& lower_bound,
     const Eigen::VectorXd& upper_bound,
-    bool shoulder_up, bool elbow_up, bool wrist_up)
+    bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance)
     : drake::solvers::Constraint(lower_bound.size(), 8, lower_bound, upper_bound),
       shoulder_up_(shoulder_up),
       elbow_up_(elbow_up),
-      wrist_up_(wrist_up) {
+      wrist_up_(wrist_up),
+      grasp_distance_(grasp_distance) {
   set_is_thread_safe(true);
 }
 
@@ -54,7 +56,7 @@ template <typename T>
 void IiwaBimanualJointLimitConstraint::DoEvalGeneric(
     const Eigen::Ref<const Eigen::VectorX<T>>& q, Eigen::VectorX<T>* y) const {
   // Only the subordinate arm's joints matter.
-  *y = IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, nullptr)
+  *y = IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, nullptr, grasp_distance_)
            .tail(7);
 }
 
