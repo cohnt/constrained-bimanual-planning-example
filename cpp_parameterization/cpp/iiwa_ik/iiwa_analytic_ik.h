@@ -1,10 +1,11 @@
-#include <Eigen/Dense>
+#pragma once
 
+#include <Eigen/Dense>
+#include <cmath>
+#include <algorithm>
 #include "drake/math/autodiff.h"
 
-#ifndef IK_STUFF
-#define IK_STUFF
-
+// Using declarations (optional, but clearer)
 using std::atan2;
 using std::cos;
 using std::max;
@@ -13,40 +14,44 @@ using std::sin;
 
 template <typename T>
 Eigen::Matrix4<T> ComputeDHMatrix(const T& ti, double ai, double di) {
-  T ct = cos(ti);
-  T st = sin(ti);
-  double ca = std::cos(ai);
-  double sa = std::sin(ai);
+    T ct = cos(ti);
+    T st = sin(ti);
+    double ca = std::cos(ai);
+    double sa = std::sin(ai);
 
-  Eigen::Matrix4<T> mat;
-  mat << ct, -st * ca, st * sa, 0, st, ct * ca, -ct * sa, 0, 0, sa, ca, di, 0,
-      0, 0, 1;
-  return mat;
+    Eigen::Matrix4<T> mat;
+    mat << ct, -st * ca, st * sa, 0,
+           st,  ct * ca, -ct * sa, 0,
+            0,       sa,      ca, di,
+            0,        0,       0, 1;
+    return mat;
 }
 
 template <typename T>
 Eigen::Matrix3<T> CrossProductMatrix(const Eigen::Matrix<T, 3, 1>& a) {
-  Eigen::Matrix3<T> A;
-  A << 0, -a(2), a(1), a(2), 0, -a(0), -a(1), a(0), 0;
-  return A;
+    Eigen::Matrix3<T> A;
+    A << 0, -a(2), a(1),
+         a(2), 0, -a(0),
+        -a(1), a(0), 0;
+    return A;
 }
 
 template <typename T>
 T ScalarClip(const T& val, double a, double b) {
-  if constexpr (std::is_same_v<T, drake::AutoDiffXd>) {
-    Eigen::VectorXd zero_deriv =
-        Eigen::VectorXd::Zero(val.derivatives().size());
-    T a_ad(a, zero_deriv);
-    T b_ad(b, zero_deriv);
-    return max(a_ad, min(b_ad, val));
-  } else {
-    return std::max(static_cast<T>(a), std::min(static_cast<T>(b), val));
-  }
+    if constexpr (std::is_same_v<T, drake::AutoDiffXd>) {
+        Eigen::VectorXd zero_deriv =
+            Eigen::VectorXd::Zero(val.derivatives().size());
+        T a_ad(a, zero_deriv);
+        T b_ad(b, zero_deriv);
+        return max(a_ad, min(b_ad, val));
+    } else {
+        return std::max(static_cast<T>(a), std::min(static_cast<T>(b), val));
+    }
 }
 
 template <typename T>
 T SafeArccos(const T& val, double a, double b) {
-  return acos(ScalarClip(val, a, b));
+    return acos(ScalarClip(val, a, b));
 }
 
 template <typename T>
@@ -218,9 +223,7 @@ template <typename T>
 Eigen::VectorX<T> IiwaBimanualParameterization(
     const Eigen::VectorX<T>& q_and_psi, const bool shoulder_up,
     const bool elbow_up, const bool wrist_up, std::nullptr_t) {
-  return IiwaBimanualParameterization(q_and_psi, shoulder_up, elbow_up,
-                                      wrist_up,
-                                      static_cast<Eigen::VectorX<T>*>(nullptr));
+    return IiwaBimanualParameterization(q_and_psi, shoulder_up, elbow_up,
+                                        wrist_up,
+                                        static_cast<Eigen::VectorX<T>*>(nullptr));
 }
-
-#endif

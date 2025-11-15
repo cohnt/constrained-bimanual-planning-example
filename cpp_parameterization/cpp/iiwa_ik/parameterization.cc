@@ -1,15 +1,9 @@
-#include <memory>
-#include <Eigen/Dense>
-#include "drake/planning/iris/iris_common.h"
-
-#include "iiwa_analytic_ik.cc"
+#include "parameterization.h"
 
 std::unique_ptr<drake::planning::IrisParameterizationFunction>
-MakeParameterization(bool shoulder_up,
-                     bool elbow_up,
-                     bool wrist_up) {
+MakeParameterization(bool shoulder_up, bool elbow_up, bool wrist_up) {
 
-    // Capture the booleans by value.
+    // Capture the booleans by value in lambdas.
     auto parameterization_double =
         [=](const Eigen::VectorXd& x) {
             return IiwaBimanualParameterization<double>(
@@ -27,5 +21,6 @@ MakeParameterization(bool shoulder_up,
     bool is_threadsafe = true;
 
     return std::make_unique<drake::planning::IrisParameterizationFunction>(
-        parameterization_double, parameterization_autodiff, is_threadsafe, 8);
+        parameterization_double, parameterization_autodiff,
+        is_threadsafe, 8);
 }

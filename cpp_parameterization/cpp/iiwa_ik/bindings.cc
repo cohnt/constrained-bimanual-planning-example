@@ -3,8 +3,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 
-#include "parameterization.cc"
-#include "constraints.cc"
+#include "parameterization.h"
+#include "constraints.h"
 
 namespace py = pybind11;
 

@@ -1,94 +1,76 @@
-#include <Eigen/Dense>
+#include "constraints.h"
 
-#include "drake/solvers/mathematical_program.h"
+IiwaBimanualReachableConstraint::IiwaBimanualReachableConstraint(
+    bool shoulder_up, bool elbow_up, bool wrist_up)
+    : drake::solvers::Constraint(4,  // output dimension
+                                 8,  // input dimension
+                                 Eigen::Vector4d::Constant(-1.0),
+                                 Eigen::Vector4d::Constant(1.0)),
+      shoulder_up_(shoulder_up),
+      elbow_up_(elbow_up),
+      wrist_up_(wrist_up) {
+  set_is_thread_safe(true);
+}
 
-#include "iiwa_analytic_ik.cc"
+template <typename T>
+void IiwaBimanualReachableConstraint::DoEvalGeneric(
+    const Eigen::Ref<const Eigen::VectorX<T>>& q, Eigen::VectorX<T>* y) const {
+  Eigen::VectorX<T> unclipped;
+  IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, &unclipped);
+  *y = unclipped;  // length 4
+}
 
-using namespace drake;
+void IiwaBimanualReachableConstraint::DoEval(
+    const Eigen::Ref<const Eigen::VectorXd>& q, Eigen::VectorXd* y) const {
+  DoEvalGeneric<double>(q, y);
+}
 
-class IiwaBimanualReachableConstraint final : public solvers::Constraint {
- public:
-  IiwaBimanualReachableConstraint(bool shoulder_up, bool elbow_up,
-                                  bool wrist_up)
-      : solvers::Constraint(4,  // number of constraint equations
-                            8,  // dimension of q_and_psi
-                            Eigen::Vector4d::Constant(-1.0),  // lower bounds
-                            Eigen::Vector4d::Constant(1.0)),  // upper bounds
-        shoulder_up_(shoulder_up),
-        elbow_up_(elbow_up),
-        wrist_up_(wrist_up) {
-    set_is_thread_safe(true);
-  }
+void IiwaBimanualReachableConstraint::DoEval(
+    const Eigen::Ref<const drake::AutoDiffVecXd>& q,
+    drake::AutoDiffVecXd* y) const {
+  DoEvalGeneric<drake::AutoDiffXd>(q, y);
+}
 
- private:
-  template <typename T>
-  void DoEvalGeneric(const Eigen::Ref<const Eigen::VectorX<T>>& q,
-                     Eigen::VectorX<T>* y) const {
-    Eigen::VectorX<T> unclipped;
-    IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_,
-                                    &unclipped);
-    *y = unclipped;  // should be length 4
-  }
+void IiwaBimanualReachableConstraint::DoEval(
+    const Eigen::Ref<const drake::VectorX<drake::symbolic::Variable>>& q,
+    drake::VectorX<drake::symbolic::Expression>* y) const {
+  DoEvalGeneric<drake::symbolic::Expression>(q, y);
+}
 
-  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
-              Eigen::VectorXd* y) const override {
-    DoEvalGeneric<double>(q, y);
-  }
+// --------------------------------------------------
 
-  void DoEval(const Eigen::Ref<const AutoDiffVecXd>& q,
-              AutoDiffVecXd* y) const override {
-    DoEvalGeneric<AutoDiffXd>(q, y);
-  }
+IiwaBimanualJointLimitConstraint::IiwaBimanualJointLimitConstraint(
+    const Eigen::VectorXd& lower_bound,
+    const Eigen::VectorXd& upper_bound,
+    bool shoulder_up, bool elbow_up, bool wrist_up)
+    : drake::solvers::Constraint(lower_bound.size(), 8, lower_bound, upper_bound),
+      shoulder_up_(shoulder_up),
+      elbow_up_(elbow_up),
+      wrist_up_(wrist_up) {
+  set_is_thread_safe(true);
+}
 
-  void DoEval(const Eigen::Ref<const VectorX<symbolic::Variable>>& q,
-              VectorX<symbolic::Expression>* y) const override {
-    DoEvalGeneric<symbolic::Expression>(q, y);
-  }
+template <typename T>
+void IiwaBimanualJointLimitConstraint::DoEvalGeneric(
+    const Eigen::Ref<const Eigen::VectorX<T>>& q, Eigen::VectorX<T>* y) const {
+  // Only the subordinate arm's joints matter.
+  *y = IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, nullptr)
+           .tail(7);
+}
 
-  bool shoulder_up_{}, elbow_up_{}, wrist_up_{};
-};
+void IiwaBimanualJointLimitConstraint::DoEval(
+    const Eigen::Ref<const Eigen::VectorXd>& q, Eigen::VectorXd* y) const {
+  DoEvalGeneric<double>(q, y);
+}
 
-class IiwaBimanualJointLimitConstraint final
-    : public drake::solvers::Constraint {
- public:
-  IiwaBimanualJointLimitConstraint(const Eigen::VectorXd& lower_bound,
-                                   const Eigen::VectorXd& upper_bound,
-                                   bool shoulder_up, bool elbow_up,
-                                   bool wrist_up)
-      : drake::solvers::Constraint(lower_bound.size(),  // number of outputs
-                                   8,  // dimension of q_and_psi
-                                   lower_bound, upper_bound),
-        shoulder_up_(shoulder_up),
-        elbow_up_(elbow_up),
-        wrist_up_(wrist_up) {
-    set_is_thread_safe(true);
-  }
+void IiwaBimanualJointLimitConstraint::DoEval(
+    const Eigen::Ref<const drake::AutoDiffVecXd>& q,
+    drake::AutoDiffVecXd* y) const {
+  DoEvalGeneric<drake::AutoDiffXd>(q, y);
+}
 
- private:
-  template <typename T>
-  void DoEvalGeneric(const Eigen::Ref<const Eigen::VectorX<T>>& q,
-                     Eigen::VectorX<T>* y) const {
-    // We only have to worry about the subordinate arm's joint limits.
-    *y = IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_,
-                                         nullptr)
-             .tail(7);
-  }
-
-  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
-              Eigen::VectorXd* y) const override {
-    DoEvalGeneric<double>(q, y);
-  }
-
-  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& q,
-              drake::AutoDiffVecXd* y) const override {
-    DoEvalGeneric<drake::AutoDiffXd>(q, y);
-  }
-
-  void DoEval(
-      const Eigen::Ref<const drake::VectorX<drake::symbolic::Variable>>& q,
-      drake::VectorX<drake::symbolic::Expression>* y) const override {
-    DoEvalGeneric<drake::symbolic::Expression>(q, y);
-  }
-
-  bool shoulder_up_{}, elbow_up_{}, wrist_up_{};
-};
+void IiwaBimanualJointLimitConstraint::DoEval(
+    const Eigen::Ref<const drake::VectorX<drake::symbolic::Variable>>& q,
+    drake::VectorX<drake::symbolic::Expression>* y) const {
+  DoEvalGeneric<drake::symbolic::Expression>(q, y);
+}

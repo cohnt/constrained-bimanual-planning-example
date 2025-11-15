@@ -10,6 +10,8 @@ find_package(pybind11 REQUIRED)
 # Build module named _iiwa_ik (not iiwa_ik) so Python package exports it cleanly
 pybind11_add_module(_iiwa_ik
     iiwa_ik/bindings.cc
+    iiwa_ik/parameterization.cc
+    iiwa_ik/constraints.cc
 )
 
 target_link_libraries(_iiwa_ik PRIVATE drake::drake)
