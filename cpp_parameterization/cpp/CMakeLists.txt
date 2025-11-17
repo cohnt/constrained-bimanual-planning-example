@@ -12,6 +12,7 @@ pybind11_add_module(_iiwa_ik
     iiwa_ik/bindings.cc
     iiwa_ik/parameterization.cc
     iiwa_ik/constraints.cc
+    iiwa_ik/costs.cc
 )
 
 target_link_libraries(_iiwa_ik PRIVATE drake::drake)

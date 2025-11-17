@@ -5,6 +5,7 @@
 
 #include "parameterization.h"
 #include "constraints.h"
+#include "costs.h"
 
 namespace py = pybind11;
 
@@ -29,5 +30,11 @@ PYBIND11_MODULE(_iiwa_ik, m) {
              py::arg("lower_bound"), py::arg("upper_bound"),
             py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"),
              py::arg("minimum_distance_lower_bound_constraint"));
+    py::class_<IiwaBimanualPathCost, drake::solvers::Cost, std::shared_ptr<IiwaBimanualPathCost>>(
+        m, "IiwaBimanualPathCost")
+        .def(py::init<int, int, bool, bool, bool, double, bool>(),
+            py::arg("num_positions"), py::arg("num_control_points"),
+            py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"),
+            py::arg("square"));
     m.def("MakeParameterization", &MakeParameterization, py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"));
 }
