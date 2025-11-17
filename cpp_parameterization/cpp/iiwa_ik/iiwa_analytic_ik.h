@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Eigen/Dense>
-#include <cmath>
-#include <algorithm>
 #include "drake/math/autodiff.h"
+#include <Eigen/Dense>
+#include <algorithm>
+#include <cmath>
 
 // Using declarations (optional, but clearer)
 using std::atan2;
@@ -13,52 +13,46 @@ using std::min;
 using std::sin;
 
 template <typename T>
-Eigen::Matrix4<T> ComputeDHMatrix(const T& ti, double ai, double di) {
-    T ct = cos(ti);
-    T st = sin(ti);
-    double ca = std::cos(ai);
-    double sa = std::sin(ai);
+Eigen::Matrix4<T> ComputeDHMatrix(const T &ti, double ai, double di) {
+  T ct = cos(ti);
+  T st = sin(ti);
+  double ca = std::cos(ai);
+  double sa = std::sin(ai);
 
-    Eigen::Matrix4<T> mat;
-    mat << ct, -st * ca, st * sa, 0,
-           st,  ct * ca, -ct * sa, 0,
-            0,       sa,      ca, di,
-            0,        0,       0, 1;
-    return mat;
+  Eigen::Matrix4<T> mat;
+  mat << ct, -st * ca, st * sa, 0, st, ct * ca, -ct * sa, 0, 0, sa, ca, di, 0,
+      0, 0, 1;
+  return mat;
 }
 
 template <typename T>
-Eigen::Matrix3<T> CrossProductMatrix(const Eigen::Matrix<T, 3, 1>& a) {
-    Eigen::Matrix3<T> A;
-    A << 0, -a(2), a(1),
-         a(2), 0, -a(0),
-        -a(1), a(0), 0;
-    return A;
+Eigen::Matrix3<T> CrossProductMatrix(const Eigen::Matrix<T, 3, 1> &a) {
+  Eigen::Matrix3<T> A;
+  A << 0, -a(2), a(1), a(2), 0, -a(0), -a(1), a(0), 0;
+  return A;
 }
 
-template <typename T>
-T ScalarClip(const T& val, double a, double b) {
-    if constexpr (std::is_same_v<T, drake::AutoDiffXd>) {
-        Eigen::VectorXd zero_deriv =
-            Eigen::VectorXd::Zero(val.derivatives().size());
-        T a_ad(a, zero_deriv);
-        T b_ad(b, zero_deriv);
-        return max(a_ad, min(b_ad, val));
-    } else {
-        return std::max(static_cast<T>(a), std::min(static_cast<T>(b), val));
-    }
+template <typename T> T ScalarClip(const T &val, double a, double b) {
+  if constexpr (std::is_same_v<T, drake::AutoDiffXd>) {
+    Eigen::VectorXd zero_deriv =
+        Eigen::VectorXd::Zero(val.derivatives().size());
+    T a_ad(a, zero_deriv);
+    T b_ad(b, zero_deriv);
+    return max(a_ad, min(b_ad, val));
+  } else {
+    return std::max(static_cast<T>(a), std::min(static_cast<T>(b), val));
+  }
 }
 
-template <typename T>
-T SafeArccos(const T& val, double a, double b) {
-    return acos(ScalarClip(val, a, b));
+template <typename T> T SafeArccos(const T &val, double a, double b) {
+  return acos(ScalarClip(val, a, b));
 }
 
 template <typename T>
 Eigen::VectorX<T> IiwaBimanualParameterization(
-    const Eigen::VectorX<T>& q_and_psi, const bool shoulder_up,
-    const bool elbow_up, const bool wrist_up,
-    Eigen::VectorX<T>* unclipped_vals, const double grasp_distance) {
+    const Eigen::VectorX<T> &q_and_psi, const bool shoulder_up,
+    const bool elbow_up, const bool wrist_up, Eigen::VectorX<T> *unclipped_vals,
+    const double grasp_distance) {
   DRAKE_THROW_UNLESS(q_and_psi.size() == 8);
   const int GC2 = shoulder_up ? 1 : -1;
   const int GC4 = elbow_up ? 1 : -1;
@@ -138,7 +132,7 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
 
   // EQ (7)
   T p_26_norm = p_26.norm();
-  T p_26_dot = p_26.dot(p_26);  // = ||p_26||²
+  T p_26_dot = p_26.dot(p_26); // = ||p_26||²
 
   T arccos_in =
       (d_se * d_se + p_26_dot - d_ew * d_ew) / (2.0 * d_se * p_26_norm);
@@ -149,7 +143,7 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
   T phi = SafeArccos(arccos_in, -clip, clip);
   T theta_2v = atan2(p_26.template head<2>().norm(), p_26(2)) + GC4 * phi;
 
-  T theta_3v = T(0);  // This joint is fixed
+  T theta_3v = T(0); // This joint is fixed
 
   // EQ (4)
   arccos_in = (p_26_dot - d_se * d_se - d_ew * d_ew) / (2.0 * d_se * d_ew);
@@ -219,10 +213,12 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
 }
 
 template <typename T>
-Eigen::VectorX<T> IiwaBimanualParameterization(
-    const Eigen::VectorX<T>& q_and_psi, const bool shoulder_up,
-    const bool elbow_up, const bool wrist_up, std::nullptr_t, const double grasp_distance) {
-    return IiwaBimanualParameterization(q_and_psi, shoulder_up, elbow_up,
-                                        wrist_up,
-                                        static_cast<Eigen::VectorX<T>*>(nullptr), grasp_distance);
+Eigen::VectorX<T>
+IiwaBimanualParameterization(const Eigen::VectorX<T> &q_and_psi,
+                             const bool shoulder_up, const bool elbow_up,
+                             const bool wrist_up, std::nullptr_t,
+                             const double grasp_distance) {
+  return IiwaBimanualParameterization(
+      q_and_psi, shoulder_up, elbow_up, wrist_up,
+      static_cast<Eigen::VectorX<T> *>(nullptr), grasp_distance);
 }
