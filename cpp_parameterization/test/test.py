@@ -1,7 +1,7 @@
 import sys
 sys.path.append("./python")
 
-from iiwa_ik import IiwaBimanualReachableConstraint, IiwaBimanualJointLimitConstraint
+from iiwa_ik import IiwaBimanualReachableConstraint, IiwaBimanualJointLimitConstraint, IiwaBimanualCollisionFreeConstraint
 from pydrake.all import Constraint
 import numpy as np
 

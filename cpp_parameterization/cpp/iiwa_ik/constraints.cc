@@ -1,4 +1,5 @@
 #include "constraints.h"
+#include <cassert>
 
 IiwaBimanualReachableConstraint::IiwaBimanualReachableConstraint(
     bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance)
@@ -75,4 +76,36 @@ void IiwaBimanualJointLimitConstraint::DoEval(
     const Eigen::Ref<const drake::VectorX<drake::symbolic::Variable>>& q,
     drake::VectorX<drake::symbolic::Expression>* y) const {
   DoEvalGeneric<drake::symbolic::Expression>(q, y);
+}
+
+// --------------------------------------------------
+
+IiwaBimanualCollisionFreeConstraint::IiwaBimanualCollisionFreeConstraint(bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance, std::shared_ptr<drake::multibody::MinimumDistanceLowerBoundConstraint> minimum_distance_lower_bound_constraint)
+    : drake::solvers::Constraint(1, 8, Eigen::VectorXd::Constant(1, -std::numeric_limits<double>::infinity()), Eigen::VectorXd::Constant(1, 1.0)),
+      shoulder_up_(shoulder_up),
+      elbow_up_(elbow_up),
+      wrist_up_(wrist_up),
+      grasp_distance_(grasp_distance),
+      minimum_distance_lower_bound_constraint_(minimum_distance_lower_bound_constraint) {
+    assert(minimum_distance_lower_bound_constraint_ != nullptr);
+    set_is_thread_safe(true);
+}
+
+template <typename T>
+void IiwaBimanualCollisionFreeConstraint::DoEvalGeneric(
+    const Eigen::Ref<const Eigen::VectorX<T>>& q, Eigen::VectorX<T>* y) const {
+  // Only the subordinate arm's joints matter.
+  Eigen::VectorX<T> q_full = IiwaBimanualParameterization<T>(q, shoulder_up_, elbow_up_, wrist_up_, nullptr, grasp_distance_);
+  minimum_distance_lower_bound_constraint_->Eval(q_full, y);
+}
+
+void IiwaBimanualCollisionFreeConstraint::DoEval(
+    const Eigen::Ref<const Eigen::VectorXd>& q, Eigen::VectorXd* y) const {
+  DoEvalGeneric<double>(q, y);
+}
+
+void IiwaBimanualCollisionFreeConstraint::DoEval(
+    const Eigen::Ref<const drake::AutoDiffVecXd>& q,
+    drake::AutoDiffVecXd* y) const {
+  DoEvalGeneric<drake::AutoDiffXd>(q, y);
 }
