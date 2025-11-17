@@ -3,9 +3,9 @@
 This repository provides example code for **planning motions in a bimanual manipulation setup**, where the **relative transform between the two end-effectors must remain fixed**.
 The approach and concepts are based on our [ICRA 2024 paper](https://ieeexplore.ieee.org/abstract/document/10610675/).
 
-Our formulation uses **analytic inverse kinematics (IK)** to parametrize the constraint manifold, producing a **minimal coordinate system**.
-In this intrinsic parametrization, the kinematic equality constraint is eliminated entirely.
-By applying **automatic differentiation** through this mapping (via the chain rule), we can propagate gradients seamlessly and solve optimization problems involving costs, constraints, and variables expressed in **both the parametrized space and the full configuration space**.
+Our formulation uses **analytic inverse kinematics (IK)** to parameterize the constraint manifold, producing a **minimal coordinate system**.
+In this intrinsic parameterization, the kinematic equality constraint is eliminated entirely.
+By applying **automatic differentiation** through this mapping (via the chain rule), we can propagate gradients seamlessly and solve optimization problems involving costs, constraints, and variables expressed in **both the parameterized space and the full configuration space**.
 This leads to simpler optimization problems whose resulting trajectories satisfy the bimanual kinematic constraint **by construction**.
 
 Since the publication of the ICRA paper, we have substantially improved the supporting infrastructure through numerous contributions to [Drake](https://drake.mit.edu/).
@@ -16,19 +16,19 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 ## Features Demonstrated
 
-- **Parametrization Construction**
+- **Parameterization Construction**
   - Creation of an analytic mapping as a Python function compatible with [Drake’s automatic differentiation](https://github.com/RobotLocomotion/drake/blob/v1.46.0/tutorials/autodiff_basics.ipynb).
-  - We use a classic leader-follower setup for our parametrization, including the self-motion of the follower arm. The degrees-of-freedom are visualized in [this picture](./other/degrees_of_freedom.jpg).
+  - We use a classic leader-follower setup for our parameterization, including the self-motion of the follower arm. The degrees-of-freedom are visualized in [this picture](./other/degrees_of_freedom.jpg).
 - **Constraint Formulation**
-  - Construction of **reachability** and **subordinate arm joint limit** constraints in the parametrized space.
+  - Construction of **reachability** and **subordinate arm joint limit** constraints in the parameterized space.
 - **Convex Region Generation**
-  - Use of [`IrisNp2`](https://drake.mit.edu/doxygen_cxx/group__planning__iris.html#gaf5bc571d0ee3753c976d3b521de397c4) and [`IrisZo`](https://drake.mit.edu/doxygen_cxx/group__planning__iris.html#ga9b44245010bfdc8163645f0c62f9e9ab) to build convex regions in the parametrized space that are **collision-free** and **kinematically valid**.
+  - Use of [`IrisNp2`](https://drake.mit.edu/doxygen_cxx/group__planning__iris.html#gaf5bc571d0ee3753c976d3b521de397c4) and [`IrisZo`](https://drake.mit.edu/doxygen_cxx/group__planning__iris.html#ga9b44245010bfdc8163645f0c62f9e9ab) to build convex regions in the parameterized space that are **collision-free** and **kinematically valid**.
   - These algorithms will, with a user-specified probability, produce a polytope such that a target percentage of the region is collision-free and kinematically valid.
 - **Motion Planning**
   - **Trajectory Optimization using Graph of Convex Sets:** using [`GcsTrajectoryOptimization`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_gcs_trajectory_optimization.html).
-  - **Sampling-Based Planning:** bidirectional RRT followed by shortcutting in the parametrized space.
+  - **Sampling-Based Planning:** bidirectional RRT followed by shortcutting in the parameterized space.
   - **Kinematic Trajectory Optimization:** refining RRT results using [`KinematicTrajectoryOptimization`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_kinematic_trajectory_optimization.html).
-  - **Representing Trajectories:** transforming trajectories in the parametrized space back to the full configuration space using [`FunctionHandleTrajectory`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1trajectories_1_1_function_handle_trajectory.html).
+  - **Representing Trajectories:** transforming trajectories in the parameterized space back to the full configuration space using [`FunctionHandleTrajectory`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1trajectories_1_1_function_handle_trajectory.html).
   - **Dynamic Retiming:** retiming trajectories with [`Toppra`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1multibody_1_1_toppra.html) to enforce velocity and acceleration limits.
 
 ---
@@ -55,8 +55,8 @@ Check out [Drake's installation instructions](https://drake.mit.edu/pip.html) fo
 - **notebooks/** -- Contains Jupyter notebooks demonstrating example workflows.
   - `notebooks/main.ipynb` -- Main tutorial notebook demonstrating the bimanual planning workflow end-to-end.
 - **src/** -- Python source code implementing the core functionality of the examples.
-  - `src/iiwa_analytic_ik.py` -- Analytic inverse kinematics implementation for the IIWA arm, used to construct the intrinsic parametrization.
-  - `src/rrt.py` -- Simple bidirectional RRT implementation for sampling-based planning in the parametrized space.
+  - `src/iiwa_analytic_ik.py` -- Analytic inverse kinematics implementation for the IIWA arm, used to construct the intrinsic parameterization.
+  - `src/rrt.py` -- Simple bidirectional RRT implementation for sampling-based planning in the parameterized space.
   - `src/shortcut.py` -- Simple randomized shortcutting implementation for improving a piecewise-linear path.
 
 ### Implementation Notes
