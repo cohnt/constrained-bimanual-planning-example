@@ -23,5 +23,11 @@ PYBIND11_MODULE(_iiwa_ik, m) {
         .def(py::init<bool, bool, bool, double, std::shared_ptr<drake::multibody::MinimumDistanceLowerBoundConstraint>>(),
             py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"),
              py::arg("minimum_distance_lower_bound_constraint"));
+    py::class_<FullFeasibilityConstraint, drake::solvers::Constraint, std::shared_ptr<FullFeasibilityConstraint>>(
+        m, "FullFeasibilityConstraint")
+        .def(py::init<Eigen::VectorXd, Eigen::VectorXd, bool, bool, bool, double, std::shared_ptr<drake::multibody::MinimumDistanceLowerBoundConstraint>>(),
+             py::arg("lower_bound"), py::arg("upper_bound"),
+            py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"),
+             py::arg("minimum_distance_lower_bound_constraint"));
     m.def("MakeParameterization", &MakeParameterization, py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"));
 }

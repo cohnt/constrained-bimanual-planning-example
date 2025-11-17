@@ -76,3 +76,32 @@ class IiwaBimanualCollisionFreeConstraint final : public drake::solvers::Constra
   double grasp_distance_{};
   std::shared_ptr<drake::multibody::MinimumDistanceLowerBoundConstraint> minimum_distance_lower_bound_constraint_{};
 };
+
+/** All-in-one feasibility constraint. */
+class FullFeasibilityConstraint final : public drake::solvers::Constraint {
+ public:
+  FullFeasibilityConstraint(const Eigen::VectorXd& lower_bound,
+                            const Eigen::VectorXd& upper_bound,
+                            bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance,
+                            std::shared_ptr<drake::multibody::MinimumDistanceLowerBoundConstraint> minimum_distance_lower_bound_constraint);
+
+ private:
+  template <typename T>
+  void DoEvalGeneric(const Eigen::Ref<const Eigen::VectorX<T>>& q,
+                     Eigen::VectorX<T>* y) const;
+
+  void DoEval(const Eigen::Ref<const Eigen::VectorXd>& q,
+              Eigen::VectorXd* y) const override;
+  void DoEval(const Eigen::Ref<const drake::AutoDiffVecXd>& q,
+              drake::AutoDiffVecXd* y) const override;
+  void DoEval(const Eigen::Ref<const drake::VectorX<drake::symbolic::Variable>>& q,
+              drake::VectorX<drake::symbolic::Expression>* y) const override {
+    throw std::logic_error(
+        "FullFeasibilityConstraint::DoEval() does not work for "
+        "symbolic variables.");
+  }
+
+  bool shoulder_up_{}, elbow_up_{}, wrist_up_{};
+  double grasp_distance_{};
+  std::shared_ptr<drake::multibody::MinimumDistanceLowerBoundConstraint> minimum_distance_lower_bound_constraint_{};
+};
