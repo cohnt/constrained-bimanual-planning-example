@@ -13,3 +13,6 @@ from pydrake.all import IrisParameterizationFunction
 
 print(isinstance(MakeParameterization(True, True, True, 0.6), IrisParameterizationFunction))
 print(MakeParameterization(True, True, True, 0.6).get_parameterization_is_threadsafe())
+
+parameterization = MakeParameterization(True, True, True, 0.6)
+parameterization.get_parameterization_double()(np.zeros(8))
