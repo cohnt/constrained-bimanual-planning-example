@@ -77,7 +77,7 @@ Eigen::VectorX<T> IiwaBimanualParameterization(
   const double d_wf = iiwa_d[6];
 
   const Eigen::Vector3d base_translation(0, -0.765, 0);
-  const double clip = 0.99;
+  const double clip = 1.0 - 1e-4;
 
   // Forward kinematics.
   Eigen::Matrix4<T> tf_goal =

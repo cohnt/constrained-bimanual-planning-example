@@ -5,8 +5,8 @@ IiwaBimanualReachableConstraint::IiwaBimanualReachableConstraint(
     bool shoulder_up, bool elbow_up, bool wrist_up, double grasp_distance)
     : drake::solvers::Constraint(4, // output dimension
                                  8, // input dimension
-                                 Eigen::Vector4d::Constant(-1.0),
-                                 Eigen::Vector4d::Constant(1.0)),
+                                 Eigen::Vector4d::Constant(-(1.0 - 1e-4)),
+                                 Eigen::Vector4d::Constant(1.0 - 1e-4)),
       shoulder_up_(shoulder_up), elbow_up_(elbow_up), wrist_up_(wrist_up),
       grasp_distance_(grasp_distance) {
   set_is_thread_safe(true);
@@ -128,7 +128,7 @@ FullFeasibilityConstraint::FullFeasibilityConstraint(
           /*num_inputs=*/8,
           [&]() {
             Eigen::VectorXd lb(4 + joint_lower.size() + 1);
-            lb.head(4).setConstant(-1.0); // reachability
+            lb.head(4).setConstant(-(1.0 - 1e-4)); // reachability
             lb.segment(4, joint_lower.size()) = joint_lower;
             lb(4 + joint_lower.size()) =
                 -std::numeric_limits<double>::infinity();
@@ -136,7 +136,7 @@ FullFeasibilityConstraint::FullFeasibilityConstraint(
           }(),
           [&]() {
             Eigen::VectorXd ub(4 + joint_lower.size() + 1);
-            ub.head(4).setConstant(1.0);
+            ub.head(4).setConstant(1.0 - 1e-4);
             ub.segment(4, joint_lower.size()) = joint_upper;
             ub(4 + joint_lower.size()) = 1.0;
             return ub;
