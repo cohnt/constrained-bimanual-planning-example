@@ -39,10 +39,14 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 Probably the only dependency you'll need to install is [**Drake**](https://drake.mit.edu/).
 You can install the latest stable release directly from PyPI with `pip install drake`.
-If you want to use the C++ implementation of the parameterization, you'll have to [build Drake from source](https://drake.mit.edu/from_source.html).
+
+If you want to use the [C++ implementation](./cpp_parameterization) of the parameterization, you'll have to [build Drake from source](https://drake.mit.edu/from_source.html).
+The C++ implementation gives major speedups, bringing region generation down to ~1.2 seconds on my laptop!
+Similarly, trajectory optimization only takes a few seconds, even with the computationally heavy parameterized costs.
 
 At the time of this repository's release, some of the features are only recently merged into Drake, so you may need to install a nightly build.
 Check out [Drake's installation instructions](https://drake.mit.edu/pip.html) for more details.
+This should no longer be an issue once Drake v1.48.0 has released. ([Expected around mid-December 2025](https://drake.mit.edu/release_notes/release_notes.html).)
 
 ## Contents
 

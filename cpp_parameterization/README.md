@@ -1,5 +1,15 @@
 # Building and Testing
 
+You have to [compile Drake from source](https://drake.mit.edu/from_source.html) on your machine to build this C++ project.
+But it's worth it for the major speedups!
+
+It's hard for me to test this on other setups, so if you get any sort of compilation errors, please let me know!
+
+## Prerequisites
+
+Someone TODO based on any reported issues.
+You'll definitely need to install [`pybind11-dev`](https://pybind11.readthedocs.io/en/stable/basics.html).
+
 ## Basic Build
 These commands build the project with default settings.
 
