@@ -66,6 +66,7 @@ This should no longer be an issue once Drake v1.48.0 has released. ([Expected ar
 - You can find a C++ implementation of the parameterization, costs, and constraints in [`./cpp_parameterization`](./cpp_parameterization). This requires a source build of Drake to compile.
 - Because Python code cannot easily be called in parallel from C++, IRIS-ZO is not highly performant without the C++ parameterization.
 - The sampling-based planning baselines (e.g., RRT) are simple and illustrative, intended for comparison rather than performance.
+- For the reachability constraint, we clip the inputs to $\cos^{-1}$ to the interval $[-0.9999,0.9999]$ so that the gradients are finite.
 
 I've also done my best to include comments in the tutorial notebook and python files to add further clarity.
 
