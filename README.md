@@ -38,14 +38,15 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 ### Installation
 
 Probably the only dependency you'll need to install is [**Drake**](https://drake.mit.edu/).
-You can install the latest stable release directly from PyPI:
+You can install the latest stable release directly from PyPI with `pip install drake`.
 
-```
-pip install drake
-```
+If you want to use the [C++ implementation](./cpp_parameterization) of the parameterization, you'll have to [build Drake from source](https://drake.mit.edu/from_source.html).
+The C++ implementation gives major speedups, bringing region generation down to ~1.2 seconds on my laptop!
+Similarly, trajectory optimization only takes a few seconds, even with the computationally heavy parameterized costs.
 
 At the time of this repository's release, some of the features are only recently merged into Drake, so you may need to install a nightly build.
 Check out [Drake's installation instructions](https://drake.mit.edu/pip.html) for more details.
+This should no longer be an issue once Drake v1.48.0 has released. ([Expected around mid-December 2025](https://drake.mit.edu/release_notes/release_notes.html).)
 
 ## Contents
 
@@ -61,9 +62,11 @@ Check out [Drake's installation instructions](https://drake.mit.edu/pip.html) fo
 
 ### Implementation Notes
 
-- Many components can be ported to C++ for significant speedups (most notably, the callable function used by IrisParameterizationFunction), but Python examples are provided for accessibility and clarity. (We plan to provide a polished C++ example soon, but for now, a rough example can be found [here](https://github.com/cohnt/drake/blob/iiwa-ik-parameterization/planning/iris/iris_common.h).)
-- Because Python code cannot easily be called in parallel from C++, IRIS-ZO is not highly performant. For parallelism, the callable functions within the IrisParameterizationFunction object should be implemented in C++.
+- Many components can be ported to C++ for significant speedups (most notably, the callable function used by IrisParameterizationFunction), but everything can be run using just Python for accessibility and clarity.
+- You can find a C++ implementation of the parameterization, costs, and constraints in [`./cpp_parameterization`](./cpp_parameterization). This requires a source build of Drake to compile.
+- Because Python code cannot easily be called in parallel from C++, IRIS-ZO is not highly performant without the C++ parameterization.
 - The sampling-based planning baselines (e.g., RRT) are simple and illustrative, intended for comparison rather than performance.
+- For the reachability constraint, we clip the inputs to $\cos^{-1}$ to the interval $[-0.9999,0.9999]$ so that the gradients are finite.
 
 I've also done my best to include comments in the tutorial notebook and python files to add further clarity.
 

@@ -1,3 +1,5 @@
 **/__pycache__/*
 notebooks/.ipynb_checkpoints/*
 notebooks/snopt.log
+cpp_parameterization/build/*
+*.so

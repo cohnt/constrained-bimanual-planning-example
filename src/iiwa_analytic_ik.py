@@ -177,7 +177,7 @@ class Analytic_IK_7DoF():
 		else:
 			return psi
 
-	def IK(self, rigid_transform, GC, psi, return_unclipped_vals=False, return_singularity_vals=False, return_sw_mats=False, clip_stepback= 1e-6):
+	def IK(self, rigid_transform, GC, psi, return_unclipped_vals=False, return_singularity_vals=False, return_sw_mats=False, clip_stepback= 1e-4):
 		# Set check_clip to 1, 2, 3, or 4 to look at the input to the arccos function
 		# Given rigid_transform, and a psi (and a GC input which is like a 3 element +-1 array), compute thetas
 		clip = 1 - clip_stepback
