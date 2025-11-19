@@ -93,7 +93,7 @@ If you use IRIS-NP2 or IRIS-ZO, please cite:
   addendum={*Denotes equal contribution.}
 }
 ```
-If you specifically use IRIS-NP2 or IRIS-ZO in minimal coordinates, please cite our workshop paper:
+If you specifically use IRIS-NP2 or IRIS-ZO in minimal coordinates, please cite our workshop paper ([see attached PDF](./other/iris_iros_workshop.pdf)):
 ```
 @inproceedings{cohn2025,
   title={Faster Algorithms for Growing Collision-Free Regions of Constrained Bimanual Configuration Spaces},
