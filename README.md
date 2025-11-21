@@ -3,6 +3,8 @@
 This repository provides example code for **planning motions in a bimanual manipulation setup**, where the **relative transform between the two end-effectors must remain fixed**.
 The approach and concepts are based on our [ICRA 2024 paper](https://ieeexplore.ieee.org/abstract/document/10610675/).
 
+![An animation of a plan produced by our method.](./other/plan.gif)
+
 Our formulation uses **analytic inverse kinematics (IK)** to parameterize the constraint manifold, producing a **minimal coordinate system**.
 In this intrinsic parameterization, the kinematic equality constraint is eliminated entirely.
 By applying **automatic differentiation** through this mapping (via the chain rule), we can propagate gradients seamlessly and solve optimization problems involving costs, constraints, and variables expressed in **both the parameterized space and the full configuration space**.
