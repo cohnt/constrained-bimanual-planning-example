@@ -37,16 +37,19 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 ### Installation
 
-Probably the only dependency you'll need to install is [**Drake**](https://drake.mit.edu/).
-You can install the latest stable release directly from PyPI with `pip install drake`.
+#### Running with Python Only
 
-If you want to use the [C++ implementation](./cpp_parameterization) of the parameterization, you'll have to [build Drake from source](https://drake.mit.edu/from_source.html).
+The Python demonstration notebook `notebooks/main.ipynb` should run with
+```
+pip install drake tqdm matplotlib networkx ipywidgets jupyter scipy pyyaml pydot
+```
+
+#### Running with C++
+
+If you want to use the [C++ implementation](./cpp_parameterization) of the parameterization, you'll first have to download a [binary installation of Drake](https://github.com/RobotLocomotion/drake/releases) or [build it from source](https://drake.mit.edu/from_source.html).
+Then, you can [compile the C++ implementation directly](./cpp_parameterization/README.md).
 The C++ implementation gives major speedups, bringing region generation down to ~1.2 seconds on my laptop!
 Similarly, trajectory optimization only takes a few seconds, even with the computationally heavy parameterized costs.
-
-At the time of this repository's release, some of the features are only recently merged into Drake, so you may need to install a nightly build.
-Check out [Drake's installation instructions](https://drake.mit.edu/pip.html) for more details.
-This should no longer be an issue once Drake v1.48.0 has released. ([Expected around mid-December 2025](https://drake.mit.edu/release_notes/release_notes.html).)
 
 ## Contents
 
@@ -63,7 +66,7 @@ This should no longer be an issue once Drake v1.48.0 has released. ([Expected ar
 ### Implementation Notes
 
 - Many components can be ported to C++ for significant speedups (most notably, the callable function used by IrisParameterizationFunction), but everything can be run using just Python for accessibility and clarity.
-- You can find a C++ implementation of the parameterization, costs, and constraints in [`./cpp_parameterization`](./cpp_parameterization). This requires a source build of Drake to compile.
+- You can find a C++ implementation of the parameterization, costs, and constraints in [`./cpp_parameterization`](./cpp_parameterization). This requires a binary installation of Drake (or a source build).
 - Because Python code cannot easily be called in parallel from C++, IRIS-ZO is not highly performant without the C++ parameterization.
 - The sampling-based planning baselines (e.g., RRT) are simple and illustrative, intended for comparison rather than performance.
 - For the reachability constraint, we clip the inputs to $\cos^{-1}$ to the interval $[-0.9999,0.9999]$ so that the gradients are finite.

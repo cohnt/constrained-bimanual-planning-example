@@ -5,7 +5,12 @@ project(iiwa_ik)
 # Example:
 #   cmake .. -DCMAKE_PREFIX_PATH=/path/to/drake/install
 find_package(drake REQUIRED)
+message(STATUS "drake found at: ${drake_DIR}")
+
+# Ensure cmake finds Drake's version of pybind11.
+list(PREPEND CMAKE_PREFIX_PATH ${drake_DIR}/../)
 find_package(pybind11 REQUIRED)
+message(STATUS "pybind11 found at: ${pybind11_DIR}")
 
 # Build module named _iiwa_ik (not iiwa_ik) so Python package exports it cleanly
 pybind11_add_module(_iiwa_ik
