@@ -17,16 +17,17 @@ export PYTHONPATH=/path/to/drake/installation/lib/python3.10/site-packages:$PYTH
 ```
 (Make sure to replace `3.10` with the Python version you are using.)
 
-There are some additional python packages you'll need to install with pip:
+There are some additional python packages you'll need to install with pip if you don't have them already:
 ```
-pip install tqdm
+pip install numpy tqdm matplotlib networkx ipywidgets jupyter scipy pyyaml pydot;
 ```
 
 ## Basic Build
 These commands build the project with default settings.
 
 ```bash
-cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/drake/installation;
+export DRAKE_INSTALL_DIR=/path/to/drake/installation;
+cmake -S . -B build -DCMAKE_PREFIX_PATH=$DRAKE_INSTALL_DIR;
 cmake --build build --target _iiwa_ik -j$(nproc);
 python3 test/test.py;
 ```
@@ -36,7 +37,8 @@ python3 test/test.py;
 These commands enable compiler optimizations for maximum speed, while remaining safe with AddressSanitizer and Eigen alignment.
 
 ```bash
-cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/drake/installation \
+export DRAKE_INSTALL_DIR=/path/to/drake/installation;
+cmake -S . -B build -DCMAKE_PREFIX_PATH=$DRAKE_INSTALL_DIR \
   -DCMAKE_C_FLAGS="-g -O3 -flto -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
     -ffast-math -fno-math-errno -funroll-loops -finline-small-functions \
     -fprefetch-loop-arrays -fstrict-aliasing" \
