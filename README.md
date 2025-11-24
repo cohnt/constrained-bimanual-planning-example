@@ -37,7 +37,23 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 ## Getting Started
 
-### Installation
+### Running Online with Deepnote
+
+You can run this repository entirely online, without installing anything locally, using Deepnote.
+Clone our project here to try it out! **TODO**: Insert a link to the Deepnote project once it's ready.
+
+You can launch Jupyter notebooks directly in the browser, run both the Python and C++ versions of the code, and visualize bimanual motion plans in Meshcat.
+This is ideal if you want a quick, zero-setup way to explore the examples, although it will probably be slower than if you run everything locally.
+
+### Docker Installation
+
+You can also use our Docker image locally in order to run everything (Python and C++) without manually installing Drake or building our code.
+The Docker image is available online here **LINK TODO**, and see [`./docker/README.md`](./docker/README.md) for further instructions.
+
+As with Deepnote, you can run the Python and C++ examples and visualize bimanual motion plans in Meshcat.
+This is generally faster than Deepnote, although still not as fast as a fully local installation.
+
+### Local Installation
 
 #### Running with Python Only
 

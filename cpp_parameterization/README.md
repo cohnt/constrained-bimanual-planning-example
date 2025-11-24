@@ -5,6 +5,11 @@ But it's worth it for the major speedups!
 
 It's hard for me to test this on other setups, so if you get any sort of compilation errors, please let me know!
 
+*You can also use the Docker image instead of installing and building everything locally.*
+See the [docker/README.md](../docker/README.md) for instructions.
+
+Otherwise, the instructions below show how to build and test locally.
+
 ## Prerequisites
 
 You may need to install [`pybind11-dev`](https://pybind11.readthedocs.io/en/stable/basics.html).
