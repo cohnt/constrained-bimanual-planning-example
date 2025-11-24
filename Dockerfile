@@ -63,7 +63,15 @@ WORKDIR /opt/proj
 # =========
 WORKDIR /opt/proj/cpp_parameterization
 
-RUN cmake -S . -B build -DCMAKE_PREFIX_PATH=${DRAKE_INSTALL_DIR}
+# RUN cmake -S . -B build -DCMAKE_PREFIX_PATH=${DRAKE_INSTALL_DIR}
+RUN cmake -S . -B build -DCMAKE_PREFIX_PATH=$DRAKE_INSTALL_DIR \
+  -DCMAKE_C_FLAGS="-g -O3 -flto -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
+    -ffast-math -fno-math-errno -funroll-loops -finline-small-functions \
+    -fprefetch-loop-arrays -fstrict-aliasing" \
+  -DCMAKE_CXX_FLAGS="-g -O3 -flto -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
+    -ffast-math -fno-math-errno -funroll-loops -finline-small-functions \
+    -fprefetch-loop-arrays -fstrict-aliasing -DEIGEN_NO_DEBUG -DEIGEN_VECTORIZE" \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo;
 
 RUN cmake --build build --target _iiwa_ik -j"$(nproc)"
 
