@@ -5,7 +5,10 @@ The Docker image comes fully configured with Drake, all Python packages, and C++
 
 ## Downloading the Docker Image
 
-**TODO**
+The Docker image is available on [Docker Hub](https://hub.docker.com/repository/docker/cohnt/constrained-bimanual-planning-example/general):
+```
+docker pull cohnt/constrained-bimanual-planning-example:latest
+```
 
 ## Launching and Using the Docker Image
 
@@ -34,6 +37,14 @@ The notebook exports a static HTML file to visualize the robot trajectory.
 To save this file, do the following before closing the Docker image:
 1) List the running containers with `docker ps`, and find the `CONTAINER_ID` of your running container.
 2) Copy the trajectory file over to your host computer with `docker cp <CONTAINER_ID>:/opt/proj/notebooks/trajectory.html .`
+
+### Note for Apple Silicon (M1/M2) Users:
+
+This Docker image is built for x86_64 (Intel/AMD) architecture.
+On Apple Silicon Macs, Docker Desktop can emulate x86_64 images, so the image usually works, but performance may be slower.
+In rare cases, some binaries may not run correctly.
+
+If you encounter any issues running the Docker image on Apple Silicon, please [open an issue](https://github.com/cohnt/constrained-bimanual-planning-example/issues/new/choose).
 
 ## Building the Docker Image Yourself
 
