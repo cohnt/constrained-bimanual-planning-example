@@ -39,11 +39,7 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 ### Running Online with Deepnote
 
-You can run this repository entirely online, without installing anything locally, using Deepnote.
-Clone our project here to try it out! **TODO**: Insert a link to the Deepnote project once it's ready.
-
-You can launch Jupyter notebooks directly in the browser, run both the Python and C++ versions of the code, and visualize bimanual motion plans in Meshcat.
-This is ideal if you want a quick, zero-setup way to explore the examples, although it will probably be slower than if you run everything locally.
+Coming soon!
 
 ### Docker Installation
 
