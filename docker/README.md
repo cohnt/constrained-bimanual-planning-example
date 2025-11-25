@@ -5,7 +5,7 @@ The Docker image comes fully configured with Drake, all Python packages, and C++
 
 ## Downloading the Docker Image
 
-The Docker image is available on [Docker Hub](https://hub.docker.com/repository/docker/cohnt/constrained-bimanual-planning-example/general):
+The Docker image is available on [Docker Hub](https://hub.docker.com/r/cohnt/constrained-bimanual-planning-example):
 ```
 docker pull cohnt/constrained-bimanual-planning-example:latest
 ```
@@ -17,7 +17,7 @@ You can launch an interactive session with the Docker image, exposing the necess
 docker run -it --rm \
     -p 8888:8888 \
     -p 7000:7000 \
-    constrained-bimanual-planning-example:latest \
+    cohnt/constrained-bimanual-planning-example:latest \
     /bin/bash
 ```
 *Note:* The `--rm` flag will remove the container when it exits.
