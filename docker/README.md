@@ -25,9 +25,12 @@ If you want to keep files inside the container, omit this flag or copy the files
 
 Once inside the container, you can start a Jupyter notebook:
 ```
+cd /opt/proj/notebooks
 jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
 ```
-Open the URL shown in the terminal to interact with the notebook.
+Open the `127.0.0.1` URL shown in the terminal to interact with the notebook.
+An example of the terminal output, with the link you should click highlighted, is shown below:
+![Screenshot of the terminal output, showing which link to click.](../other/link_to_click.png)
 You can run both the Python and C++ examples directly in the container.
 Once you've launched the notebook, Meshcat visualization will be available in your web browser at `localhost:7000`.
 
