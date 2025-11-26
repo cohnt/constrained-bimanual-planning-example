@@ -37,7 +37,19 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 ## Getting Started
 
-### Installation
+### Running Online with Deepnote
+
+Coming soon!
+
+### Docker Installation
+
+You can also use our Docker image locally in order to run everything (Python and C++) without manually installing Drake or building our code.
+The Docker image is available online [here](https://hub.docker.com/repository/docker/cohnt/constrained-bimanual-planning-example/general), and see [`./docker/README.md`](./docker/README.md) for further instructions.
+
+As with Deepnote, you can run the Python and C++ examples and visualize bimanual motion plans in Meshcat.
+This is generally faster than Deepnote, although still not as fast as a fully local installation.
+
+### Local Installation
 
 #### Running with Python Only
 
