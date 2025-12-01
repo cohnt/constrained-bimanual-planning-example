@@ -37,17 +37,13 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
 
 ## Getting Started
 
-### Running Online with Deepnote
-
-Coming soon!
-
 ### Docker Installation
 
-You can also use our Docker image locally in order to run everything (Python and C++) without manually installing Drake or building our code.
+You can use our Docker image locally in order to run everything (Python and C++) without manually installing Drake or building our code.
 The Docker image is available online [here](https://hub.docker.com/repository/docker/cohnt/constrained-bimanual-planning-example/general), and see [`./docker/README.md`](./docker/README.md) for further instructions.
 
-As with Deepnote, you can run the Python and C++ examples and visualize bimanual motion plans in Meshcat.
-This is generally faster than Deepnote, although still not as fast as a fully local installation.
+You can run the Python and C++ examples and visualize bimanual motion plans in Meshcat.
+This should run quickly, albeit not quite as fast as a fully local installation.
 
 ### Local Installation
 
@@ -64,6 +60,10 @@ If you want to use the [C++ implementation](./cpp_parameterization) of the param
 Then, you can [compile the C++ implementation directly](./cpp_parameterization/README.md).
 The C++ implementation gives major speedups, bringing region generation down to ~1.2 seconds on my laptop!
 Similarly, trajectory optimization only takes a few seconds, even with the computationally heavy parameterized costs.
+
+### Running Online with Deepnote
+
+Coming soon! We are currently waiting for Deepnote to fix an issue with custom docker images.
 
 ## Contents
 
