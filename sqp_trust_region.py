@@ -180,13 +180,13 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
     print(f"Initial Cost: {f_k:.4f} | Initial Feasible: {is_feas} (max viol={max_v:.2e}) | Initial Merit: {merit_k:.4f} | Initial Radius: {delta_k:.4f}")
     print("=" * 80)
 
-    # Fast OSQP solver options
+    # Fast Loose OSQP solver options (Inexact QP Subproblems)
     from pydrake.solvers import SolverOptions, CommonSolverOption
     osqp_solver = OsqpSolver()
     osqp_options = SolverOptions()
-    osqp_options.SetOption(OsqpSolver().solver_id(), "eps_abs", 1e-4)
-    osqp_options.SetOption(OsqpSolver().solver_id(), "eps_rel", 1e-4)
-    osqp_options.SetOption(OsqpSolver().solver_id(), "max_iter", 4000)
+    osqp_options.SetOption(OsqpSolver().solver_id(), "eps_abs", 1e-2)
+    osqp_options.SetOption(OsqpSolver().solver_id(), "eps_rel", 1e-2)
+    osqp_options.SetOption(OsqpSolver().solver_id(), "max_iter", 250)
 
     # =========================================================================
     # ONE-TIME INITIALIZATION: Construct MathematicalProgram ONCE before loop
