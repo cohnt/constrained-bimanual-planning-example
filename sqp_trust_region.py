@@ -188,42 +188,88 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
     osqp_options.SetOption(OsqpSolver().solver_id(), "eps_rel", 1e-4)
     osqp_options.SetOption(OsqpSolver().solver_id(), "max_iter", 4000)
 
+    # =========================================================================
+    # ONE-TIME INITIALIZATION: Construct MathematicalProgram ONCE before loop
+    # =========================================================================
+    t_start_build_0 = time.time()
+    lin_constraints_0 = compute_constraints_and_jacobians(prog, x_k)
+
+    qp_prog = MathematicalProgram()
+    p = qp_prog.NewContinuousVariables(n, "p")
+
+    # Count total scalar constraints for slacks
+    num_slacks = 0
+    for lc in lin_constraints_0:
+        m = len(lc["val_0"])
+        num_slacks += 2 * m  # lower and upper slacks
+
+    v = qp_prog.NewContinuousVariables(num_slacks, "v")
+    qp_prog.AddBoundingBoxConstraint(0.0, 1e5, v)
+
+    # 1. Quadratic Cost Binding (In-Place updatable)
+    cost_binding = qp_prog.AddQuadraticCost(H_k, g_k, p)
+
+    # 2. Linear Cost Binding on Slacks
+    qp_prog.AddLinearCost(mu * np.ones(num_slacks), v)
+
+    # 3. Trust Region Box Binding (In-Place updatable)
+    tr_box_binding = qp_prog.AddBoundingBoxConstraint(-delta_k * np.ones(n), delta_k * np.ones(n), p)
+
+    # 4. Linear Constraint Bindings (In-Place updatable)
+    lin_bindings = []
+    slack_idx = 0
+    for lc in lin_constraints_0:
+        idx = lc["indices"]
+        c_k = lc["val_0"]
+        J_sub = lc["J_sub"]
+        lb_rel = lc["lb"] - c_k
+        ub_rel = lc["ub"] - c_k
+        m = len(c_k)
+
+        v_lb = v[slack_idx : slack_idx + m]
+        v_ub = v[slack_idx + m : slack_idx + 2 * m]
+        slack_idx += 2 * m
+
+        for i_c in range(m):
+            if not np.isneginf(lb_rel[i_c]):
+                vars_lb = np.concatenate([p[idx], [v_lb[i_c]]])
+                coeff_lb = np.concatenate([J_sub[i_c, :], [1.0]])
+                b_lb = qp_prog.AddLinearConstraint(coeff_lb.reshape(1, -1), np.array([lb_rel[i_c]]), np.array([1e9]), vars_lb)
+                lin_bindings.append(("lb", b_lb, idx, i_c, 1.0))
+            if not np.isposinf(ub_rel[i_c]):
+                vars_ub = np.concatenate([p[idx], [v_ub[i_c]]])
+                coeff_ub = np.concatenate([J_sub[i_c, :], [-1.0]])
+                b_ub = qp_prog.AddLinearConstraint(coeff_ub.reshape(1, -1), np.array([-1e9]), np.array([ub_rel[i_c]]), vars_ub)
+                lin_bindings.append(("ub", b_ub, idx, i_c, -1.0))
+
+    t_build_0 = time.time() - t_start_build_0
+    print(f"One-Time MathematicalProgram Setup Complete in {t_build_0*1000:.1f}ms (Reused across all iterations)")
+
     total_lin_time = 0.0
-    total_build_time = 0.0
+    total_build_time = t_build_0
     total_solve_time = 0.0
     total_osqp_internal_time = 0.0
     accepted_steps = 0
 
     for it in range(max_iters):
-        # 1. Linearize constraints at x_k (Python finite differences & evaluation)
+        # 1. Linearize constraints at x_k (Drake Native C++ AutoDiff)
         t_start_lin = time.time()
         lin_constraints = compute_constraints_and_jacobians(prog, x_k)
         t_lin = time.time() - t_start_lin
         total_lin_time += t_lin
 
-        # 2. Formulate L1 Penalty QP Subproblem in Drake (Python AST & binding construction)
+        # 2. IN-PLACE UPDATE of existing MathematicalProgram bindings (0ms AST rebuild!)
         t_start_build = time.time()
-        qp_prog = MathematicalProgram()
-        p = qp_prog.NewContinuousVariables(n, "p")
+        
+        # Update quadratic cost H_k and g_k in-place
+        cost_binding.evaluator().UpdateCoefficients(H_k, g_k)
 
-        # Count total scalar constraints for slacks
-        num_slacks = 0
-        for lc in lin_constraints:
-            m = len(lc["val_0"])
-            num_slacks += 2 * m  # lower and upper slacks
+        # Update trust region box [-delta_k, delta_k] in-place
+        tr_box_binding.evaluator().UpdateLowerBound(-delta_k * np.ones(n))
+        tr_box_binding.evaluator().UpdateUpperBound(+delta_k * np.ones(n))
 
-        v = qp_prog.NewContinuousVariables(num_slacks, "v")
-        qp_prog.AddBoundingBoxConstraint(0.0, 1e5, v)
-
-        # Objective: 0.5 * p^T * H_k * p + g_k^T * p + mu * sum(v)
-        qp_prog.AddQuadraticCost(H_k, g_k, p)
-        qp_prog.AddLinearCost(mu * np.ones(num_slacks), v)
-
-        # Trust Region Bounding Box: -delta_k <= p <= delta_k
-        qp_prog.AddBoundingBoxConstraint(-delta_k, delta_k, p)
-
-        # Linearized Constraints with slacks
-        slack_idx = 0
+        # Update linear constraint Jacobians and bounds in-place
+        binding_idx = 0
         for lc in lin_constraints:
             idx = lc["indices"]
             c_k = lc["val_0"]
@@ -232,21 +278,18 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
             ub_rel = lc["ub"] - c_k
             m = len(c_k)
 
-            v_lb = v[slack_idx : slack_idx + m]
-            v_ub = v[slack_idx + m : slack_idx + 2 * m]
-            slack_idx += 2 * m
-
-            # J_sub * p + v_lb >= lb_rel
-            # J_sub * p - v_ub <= ub_rel
             for i_c in range(m):
                 if not np.isneginf(lb_rel[i_c]):
-                    vars_lb = np.concatenate([p[idx], [v_lb[i_c]]])
-                    coeff_lb = np.concatenate([J_sub[i_c, :], [1.0]])
-                    qp_prog.AddLinearConstraint(coeff_lb, lb_rel[i_c], 1e9, vars_lb)
+                    kind, b_lb, _, _, s_sign = lin_bindings[binding_idx]
+                    binding_idx += 1
+                    coeff_lb = np.concatenate([J_sub[i_c, :], [s_sign]]).reshape(1, -1)
+                    b_lb.evaluator().UpdateCoefficients(coeff_lb, np.array([lb_rel[i_c]]), np.array([1e9]))
                 if not np.isposinf(ub_rel[i_c]):
-                    vars_ub = np.concatenate([p[idx], [v_ub[i_c]]])
-                    coeff_ub = np.concatenate([J_sub[i_c, :], [-1.0]])
-                    qp_prog.AddLinearConstraint(coeff_ub, -1e9, ub_rel[i_c], vars_ub)
+                    kind, b_ub, _, _, s_sign = lin_bindings[binding_idx]
+                    binding_idx += 1
+                    coeff_ub = np.concatenate([J_sub[i_c, :], [s_sign]]).reshape(1, -1)
+                    b_ub.evaluator().UpdateCoefficients(coeff_ub, np.array([-1e9]), np.array([ub_rel[i_c]]))
+
         t_build = time.time() - t_start_build
         total_build_time += t_build
 
