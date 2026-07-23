@@ -188,14 +188,21 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
     osqp_options.SetOption(OsqpSolver().solver_id(), "eps_rel", 1e-4)
     osqp_options.SetOption(OsqpSolver().solver_id(), "max_iter", 4000)
 
-    total_qp_time = 0.0
+    total_lin_time = 0.0
+    total_build_time = 0.0
+    total_solve_time = 0.0
+    total_osqp_internal_time = 0.0
     accepted_steps = 0
 
     for it in range(max_iters):
-        # 1. Linearize constraints at x_k
+        # 1. Linearize constraints at x_k (Python finite differences & evaluation)
+        t_start_lin = time.time()
         lin_constraints = compute_constraints_and_jacobians(prog, x_k)
+        t_lin = time.time() - t_start_lin
+        total_lin_time += t_lin
 
-        # 2. Formulate L1 Penalty QP Subproblem in Drake
+        # 2. Formulate L1 Penalty QP Subproblem in Drake (Python AST & binding construction)
+        t_start_build = time.time()
         qp_prog = MathematicalProgram()
         p = qp_prog.NewContinuousVariables(n, "p")
 
@@ -240,12 +247,26 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
                     vars_ub = np.concatenate([p[idx], [v_ub[i_c]]])
                     coeff_ub = np.concatenate([J_sub[i_c, :], [-1.0]])
                     qp_prog.AddLinearConstraint(coeff_ub, -1e9, ub_rel[i_c], vars_ub)
+        t_build = time.time() - t_start_build
+        total_build_time += t_build
 
         # 3. Solve QP Subproblem using OSQP
-        t0 = time.time()
+        t_start_solve = time.time()
         qp_result = osqp_solver.Solve(qp_prog, None, osqp_options)
-        t_qp = time.time() - t0
-        total_qp_time += t_qp
+        t_solve = time.time() - t_start_solve
+        total_solve_time += t_solve
+
+        # Extract internal OSQP solver details if available
+        t_osqp_internal = 0.0
+        try:
+            details = qp_result.get_solver_details()
+            if hasattr(details, "solve_time"):
+                t_osqp_internal = float(details.solve_time)
+            elif hasattr(details, "run_time"):
+                t_osqp_internal = float(details.run_time)
+        except Exception:
+            pass
+        total_osqp_internal_time += t_osqp_internal
 
         if not qp_result.is_success():
             print(f"TR Iter {it+1:02d} | OSQP Failed ({qp_result.get_solution_result()}) -> Shrinking delta")
@@ -264,7 +285,7 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
         # Actual merit reduction
         act_red = merit_k - merit_cand
 
-        print(f"TR Iter {it+1:02d} | t_qp={t_qp*1000:.1f}ms | Delta={delta_k:.5f} | Step={step_norm:.5f} | Cost={f_cand:.4f} (Merit={merit_cand:.4f}, act_red={act_red:+.4f}) | Feas={cand_feas} (viol={cand_viol:.2e})")
+        print(f"TR Iter {it+1:02d} | Lin={t_lin*1000:.1f}ms | Build={t_build*1000:.1f}ms | Solve={t_solve*1000:.1f}ms (OSQP={t_osqp_internal*1000:.1f}ms) | Cost={f_cand:.4f} | Feas={cand_feas}")
 
         # Step acceptance criteria
         if act_red > 1e-4 or (cand_feas and f_cand < f_k):
@@ -293,12 +314,20 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
             print(f"Trust region radius shrank below minimum threshold ({delta_min:.1e}). Stopping.")
             break
 
+    total_wall_time = total_lin_time + total_build_time + total_solve_time
     print("=" * 80)
-    print(f"SQP TRUST REGION SOLVE COMPLETE IN {total_qp_time:.3f}s (QP time)")
+    print("SQP TRUST REGION TIMING BREAKDOWN:")
+    print(f"  1. Linearization (Python Finite Diff & Eval): {total_lin_time:.3f}s ({total_lin_time/total_wall_time*100:.1f}%)")
+    print(f"  2. QP Subproblem Build (Drake Python AST):    {total_build_time:.3f}s ({total_build_time/total_wall_time*100:.1f}%)")
+    print(f"  3. QP Subproblem Solve (Drake C++ Interface):  {total_solve_time:.3f}s ({total_solve_time/total_wall_time*100:.1f}%)")
+    if total_osqp_internal_time > 0:
+        print(f"     -> Pure OSQP C-Solver Internal Time:        {total_osqp_internal_time:.3f}s ({total_osqp_internal_time/total_wall_time*100:.1f}%)")
+    print(f"  TOTAL WALL TIME:                             {total_wall_time:.3f}s")
+    print("-" * 80)
     print(f"Total Iterations: {it+1} | Accepted Steps: {accepted_steps} | Final Cost: {f_k:.4f}")
     print(f"All constraints satisfied at final solution? {eval_feasibility(prog, x_k)[0]}")
     print("=" * 80)
 
     # Return final solution
     prog.SetInitialGuess(vars_all, x_k)
-    return x_k, f_k, total_qp_time
+    return x_k, f_k, total_solve_time
