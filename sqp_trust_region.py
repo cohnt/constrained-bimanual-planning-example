@@ -155,9 +155,11 @@ def update_damped_bfgs(H, s, y):
     # Symmetrize
     return 0.5 * (H_next + H_next.T)
 
-def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, delta_max=2.0, mu=100.0):
+def solve_sqp_trust_region(prog, max_iters=80, delta_0=0.10, delta_min=1e-5, delta_max=2.0, mu=100.0, switch_iter=35):
     """
-    L1-Penalty SQP Trust Region solver using Powell's Damped BFGS (1st-order gradients only).
+    Two-Stage Adaptive L1-Penalty SQP Trust Region solver using OSQP backend.
+    - Stage 1 (Iters 0..switch_iter): Loose Inexact QP Subproblems (eps_abs=1e-2) for fast macro-steps.
+    - Stage 2 (Iters switch_iter+): Strict Fine Polishing (eps_abs=1e-4) for high-precision convergence.
     """
     vars_all = prog.decision_variables()
     n = len(vars_all)
@@ -176,11 +178,12 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
     f_k, g_k = compute_cost_and_grad(prog, x_k)
 
     print("=" * 80)
-    print(f"STARTING FAST L1-PENALTY SQP TRUST REGION SOLVER (OSQP backend, N={n} vars, mu={mu})")
-    print(f"Initial Cost: {f_k:.4f} | Initial Feasible: {is_feas} (max viol={max_v:.2e}) | Initial Merit: {merit_k:.4f} | Initial Radius: {delta_k:.4f}")
+    print(f"STARTING TWO-STAGE ADAPTIVE SQP TRUST REGION SOLVER (OSQP backend, N={n} vars, mu={mu})")
+    print(f"Initial Cost: {f_k:.4f} | Initial Feasible: {is_feas} (max viol={max_v:.2e}) | Initial Radius: {delta_k:.4f}")
+    print(f"Phase 1: Inexact QP (eps=1e-2, max_iter=250) -> Phase 2 (at iter {switch_iter}): Fine Polish (eps=1e-4, max_iter=4000)")
     print("=" * 80)
 
-    # Fast Loose OSQP solver options (Inexact QP Subproblems)
+    # Fast Loose OSQP solver options (Inexact QP Subproblems for Phase 1)
     from pydrake.solvers import SolverOptions, CommonSolverOption
     osqp_solver = OsqpSolver()
     osqp_options = SolverOptions()
@@ -250,8 +253,16 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
     total_solve_time = 0.0
     total_osqp_internal_time = 0.0
     accepted_steps = 0
+    t_start_loop = time.time()
 
     for it in range(max_iters):
+        # Check if we should switch to Stage 2 (Fine Polishing)
+        if it == switch_iter:
+            print(f">>> SWITCHING TO STAGE 2 FINE POLISHING TOLERANCES (eps_abs=1e-4, max_iter=4000) AT ITER {it+1}")
+            osqp_options.SetOption(OsqpSolver().solver_id(), "eps_abs", 1e-4)
+            osqp_options.SetOption(OsqpSolver().solver_id(), "eps_rel", 1e-4)
+            osqp_options.SetOption(OsqpSolver().solver_id(), "max_iter", 4000)
+
         # 1. Linearize constraints at x_k (Drake Native C++ AutoDiff)
         t_start_lin = time.time()
         lin_constraints = compute_constraints_and_jacobians(prog, x_k)
@@ -321,14 +332,14 @@ def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, de
         p_val = qp_result.GetSolution(p)
         step_norm = np.linalg.norm(p_val)
 
-        # Candidate point
+        # Candidate point & merit evaluation
         x_cand = x_k + p_val
         merit_cand, f_cand, cand_feas, cand_viol = eval_merit(x_cand)
 
         # Actual merit reduction
         act_red = merit_k - merit_cand
-
-        print(f"TR Iter {it+1:02d} | Lin={t_lin*1000:.1f}ms | Build={t_build*1000:.1f}ms | Solve={t_solve*1000:.1f}ms (OSQP={t_osqp_internal*1000:.1f}ms) | Cost={f_cand:.4f} | Feas={cand_feas}")
+        t_cum = time.time() - t_start_loop
+        print(f"TR Iter {it+1:02d} [Cum={t_cum:.2f}s] | Lin={t_lin*1000:.1f}ms | Build={t_build*1000:.1f}ms | Solve={t_solve*1000:.1f}ms (OSQP={t_osqp_internal*1000:.1f}ms) | Cost={f_cand:.4f} | Feas={cand_feas}")
 
         # Step acceptance criteria
         if act_red > 1e-4 or (cand_feas and f_cand < f_k):
