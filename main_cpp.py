@@ -641,6 +641,13 @@ def run_pipeline(strip_special_optimizer_settings=False, use_solver="snopt", use
         solver = SnoptSolver()
     elif use_solver == "ipopt":
         solver = IpoptSolver()
+    elif use_solver == "osqp":
+        import sqp_trust_region
+        x_sol, sol_cost, t_solve = sqp_trust_region.solve_sqp_trust_region(trajopt.prog(), max_iters=max_iters, delta_0=delta_0)
+        final_res = solver.Solve(trajopt.prog(), x_sol, trajopt_options) if use_solver != "osqp" else None
+        is_feas, max_viol = sqp_trust_region.eval_feasibility(trajopt.prog(), x_sol)
+        print(f"OSQP SQP-TR Completed in {t_solve:.3f}s (QP time). Optimal Cost: {sol_cost:.4f}, Feasible: {is_feas}")
+        return True, is_feas, t_solve, sol_cost
     else:
         raise ValueError(f"Unknown solver {use_solver}")
 
@@ -692,7 +699,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--strip-options", action="store_true", help="Strip special optimizer options")
     parser.add_argument("--trust-region", action="store_true", help="Use custom Trust Region loop")
-    parser.add_argument("--solver", type=str, default="snopt", choices=["snopt", "ipopt"])
+    parser.add_argument("--solver", type=str, default="snopt", choices=["snopt", "ipopt", "osqp"])
     parser.add_argument("--opt-tolerance", type=float, default=None, help="Custom SNOPT Major optimality tolerance")
     parser.add_argument("--delta-0", type=float, default=0.25, help="Initial trust region radius")
     parser.add_argument("--max-iters", type=int, default=20, help="Max TR iterations")
