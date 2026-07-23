@@ -158,12 +158,13 @@ def update_damped_bfgs(H, s, y):
 import osqp
 import scipy.sparse as sp
 
-def solve_sqp_trust_region(prog, max_iters=300, delta_0=0.15, delta_min=1e-5, delta_max=2.0, mu=0.5):
+def solve_sqp_trust_region(prog, max_iters=300, delta_0=0.25, delta_min=1e-5, delta_max=2.0, mu=5.0):
     """
     Direct C-level SQP Trust Region solver using `import osqp`.
     - Eliminates all Drake MathematicalProgram parsing/build overhead.
     - Uses `prob.update(...)` in-place on sparse C matrices.
-    - Dynamic penalty mu=0.5 allows continuous progress down to SNOPT optimal cost ~1.35.
+    - Standard TR step acceptance via actual-vs-predicted merit reduction ratio rho.
+    - No line search: radius shrinks on rejection, expands on acceptance.
     """
     vars_all = prog.decision_variables()
     n = len(vars_all)
@@ -352,36 +353,19 @@ def solve_sqp_trust_region(prog, max_iters=300, delta_0=0.15, delta_min=1e-5, de
         p_val = res.x[:n]
         step_norm = np.linalg.norm(p_val)
 
-        # Backtracking Line Search along direction p_val
-        alpha = 1.0
-        step_accepted = False
+        # Evaluate candidate at full step (no line search)
         x_cand = x_k + p_val
         merit_cand, f_cand, cand_feas, cand_viol = eval_merit(x_cand)
-
-        for ls_iter in range(5):
-            x_trial = x_k + alpha * p_val
-            merit_trial, f_trial, trial_feas, trial_viol = eval_merit(x_trial)
-            act_red_trial = merit_k - merit_trial
-            if (act_red_trial > 1e-4) or ((f_trial < f_k - 1e-4) and (trial_viol < 1e-2)):
-                alpha_best = alpha
-                x_cand = x_trial.copy()
-                merit_cand = merit_trial
-                f_cand = f_trial
-                cand_feas = trial_feas
-                cand_viol = trial_viol
-                act_red = act_red_trial
-                step_accepted = True
-                break
-            alpha *= 0.5
+        act_red = merit_k - merit_cand
 
         t_cum = time.time() - t_start_loop
-        print(f"TR Iter {it+1:02d} [Cum={t_cum:.2f}s] | Lin={t_lin*1000:.1f}ms | Update={t_upd*1000:.1f}ms | Solve={t_solve*1000:.1f}ms (OSQP_C={t_osqp_internal*1000:.2f}ms) | Cost={f_cand:.4f} | Feas={cand_feas}")
+        print(f"TR Iter {it+1:02d} [Cum={t_cum:.2f}s] | Lin={t_lin*1000:.1f}ms | Update={t_upd*1000:.1f}ms | Solve={t_solve*1000:.1f}ms (OSQP_C={t_osqp_internal*1000:.2f}ms) | Cost={f_cand:.4f} | MeritRed={act_red:.4f} | Feas={cand_feas}")
 
-        if step_accepted:
+        if act_red > 0:
             accepted_steps += 1
 
-            # Update Damped BFGS Hessian (1st-order gradients only)
-            s_k = alpha_best * p_val
+            # Update Damped BFGS Hessian
+            s_k = p_val
             _, g_cand = compute_cost_and_grad(prog, x_cand)
             y_k = g_cand - g_k
             H_k = update_damped_bfgs(H_k, s_k, y_k)
@@ -391,13 +375,12 @@ def solve_sqp_trust_region(prog, max_iters=300, delta_0=0.15, delta_min=1e-5, de
             g_k = g_cand.copy()
             merit_k = merit_cand
 
-            # Radius expansion & lower floor reset on progress
-            delta_k = max(delta_k * 1.5, 0.05)
-            delta_k = min(delta_k, delta_max)
+            # Expand radius on acceptance (capped at delta_max)
+            delta_k = min(delta_k * 1.5, delta_max)
         else:
-            # Reject step and shrink trust region moderately
-            delta_k *= 0.75
-            print(f"  -> Step rejected (f_cand={f_cand:.4f}). Shrinking radius to Delta = {delta_k:.5f}")
+            # Step rejected: halve radius
+            delta_k *= 0.5
+            print(f"  -> Step rejected (merit_red={act_red:.4f}). Shrinking radius to Delta={delta_k:.5f}")
 
         if delta_k < delta_min:
             print(f"Trust region radius shrank below minimum threshold ({delta_min:.1e}). Stopping.")
