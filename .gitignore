@@ -2,5 +2,7 @@
 notebooks/.ipynb_checkpoints/*
 notebooks/snopt.log
 notebooks/trajectory.html
+notebooks/extracted_cells.py
 cpp_parameterization/build/*
+snopt.log
 *.so
