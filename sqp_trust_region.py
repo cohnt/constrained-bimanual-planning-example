@@ -81,17 +81,67 @@ def eval_feasibility(prog, x):
             max_viol = max(max_viol, m1, m2)
     return satisfied, max_viol
 
-def solve_sqp_trust_region(prog, max_iters=25, delta_0=0.1, delta_min=1e-5, delta_max=2.0, mu=100.0):
+def compute_exact_cost_hessian(prog, n, eps=1e-5):
     """
-    True L1-Penalty SQP Trust Region solver in Python using Drake's OSQP solver for QP subproblems.
+    Computes exact cost Hessian H = grad^2 f(x) for quadratic trajectory costs.
+    """
+    costs = prog.GetAllCosts()
+    H = np.zeros((n, n))
+    x0 = np.zeros(n)
+    
+    # Evaluate Hessian from cost bindings
+    for b in costs:
+        idx = prog.FindDecisionVariableIndices(b.variables())
+        evaluator = b.evaluator()
+        m_vars = len(idx)
+        # Numerical second derivatives for this binding
+        H_sub = np.zeros((m_vars, m_vars))
+        x_sub = np.zeros(m_vars)
+        f0 = np.sum(evaluator.Eval(x_sub))
+        for i in range(m_vars):
+            for j in range(i, m_vars):
+                x_ij = x_sub.copy()
+                x_ij[i] += eps
+                x_ij[j] += eps
+                f_ij = np.sum(evaluator.Eval(x_ij))
+
+                x_i = x_sub.copy()
+                x_i[i] += eps
+                f_i = np.sum(evaluator.Eval(x_i))
+
+                x_j = x_sub.copy()
+                x_j[j] += eps
+                f_j = np.sum(evaluator.Eval(x_j))
+
+                hij = float((f_ij - f_i - f_j + f0) / (eps * eps))
+                H_sub[i, j] = hij
+                H_sub[j, i] = hij
+        
+        for i_local, i_global in enumerate(idx):
+            for j_local, j_global in enumerate(idx):
+                H[i_global, j_global] += H_sub[i_local, j_local]
+                
+    # Project to positive semi-definite matrix via spectral decomposition V * max(1e-3, evals) * V^T
+    eigvals, eigvecs = np.linalg.eigh(H)
+    eigvals_clamped = np.maximum(eigvals, 1e-3)
+    H_psd = eigvecs @ np.diag(eigvals_clamped) @ eigvecs.T
+    H_psd = 0.5 * (H_psd + H_psd.T) + 1e-3 * np.eye(n)
+    return H_psd
+
+def solve_sqp_trust_region(prog, max_iters=25, delta_0=0.10, delta_min=1e-5, delta_max=2.0, mu=100.0):
+    """
+    Fast L1-Penalty SQP Trust Region solver using OSQP backend.
     """
     vars_all = prog.decision_variables()
     n = len(vars_all)
     x_k = prog.GetInitialGuess(vars_all).copy()
     delta_k = delta_0
 
-    # Initialize BFGS Hessian approximation
-    H_k = np.eye(n) * 1.0
+    # Initialize tridiagonal trajectory Hessian H_k
+    H_k = np.eye(n) * 2.0
+    for i in range(n - 8):
+        H_k[i, i + 8] = -1.0
+        H_k[i + 8, i] = -1.0
 
     def eval_merit(x, penalty_weight=mu):
         f_val, _ = compute_cost_and_grad(prog, x)
@@ -102,11 +152,18 @@ def solve_sqp_trust_region(prog, max_iters=25, delta_0=0.1, delta_min=1e-5, delt
     f_k, g_k = compute_cost_and_grad(prog, x_k)
 
     print("=" * 80)
-    print(f"STARTING L1-PENALTY SQP TRUST REGION SOLVER (OSQP backend, N={n} vars, mu={mu})")
+    print(f"STARTING FAST L1-PENALTY SQP TRUST REGION SOLVER (OSQP backend, N={n} vars, mu={mu})")
     print(f"Initial Cost: {f_k:.4f} | Initial Feasible: {is_feas} (max viol={max_v:.2e}) | Initial Merit: {merit_k:.4f} | Initial Radius: {delta_k:.4f}")
     print("=" * 80)
 
+    # Fast OSQP solver options
+    from pydrake.solvers import SolverOptions, CommonSolverOption
     osqp_solver = OsqpSolver()
+    osqp_options = SolverOptions()
+    osqp_options.SetOption(OsqpSolver().solver_id(), "eps_abs", 1e-4)
+    osqp_options.SetOption(OsqpSolver().solver_id(), "eps_rel", 1e-4)
+    osqp_options.SetOption(OsqpSolver().solver_id(), "max_iter", 4000)
+
     total_qp_time = 0.0
     accepted_steps = 0
 
@@ -148,17 +205,21 @@ def solve_sqp_trust_region(prog, max_iters=25, delta_0=0.1, delta_min=1e-5, delt
             v_ub = v[slack_idx + m : slack_idx + 2 * m]
             slack_idx += 2 * m
 
-            # J_sub * p + v_lb >= lb_rel  =>  J_sub * p + v_lb >= lb_rel
+            # J_sub * p + v_lb >= lb_rel
             # J_sub * p - v_ub <= ub_rel
             for i_c in range(m):
                 if not np.isneginf(lb_rel[i_c]):
-                    qp_prog.AddLinearConstraint(J_sub[i_c, :], lb_rel[i_c], 1e9, p[idx])
+                    vars_lb = np.concatenate([p[idx], [v_lb[i_c]]])
+                    coeff_lb = np.concatenate([J_sub[i_c, :], [1.0]])
+                    qp_prog.AddLinearConstraint(coeff_lb, lb_rel[i_c], 1e9, vars_lb)
                 if not np.isposinf(ub_rel[i_c]):
-                    qp_prog.AddLinearConstraint(J_sub[i_c, :], -1e9, ub_rel[i_c], p[idx])
+                    vars_ub = np.concatenate([p[idx], [v_ub[i_c]]])
+                    coeff_ub = np.concatenate([J_sub[i_c, :], [-1.0]])
+                    qp_prog.AddLinearConstraint(coeff_ub, -1e9, ub_rel[i_c], vars_ub)
 
         # 3. Solve QP Subproblem using OSQP
         t0 = time.time()
-        qp_result = osqp_solver.Solve(qp_prog)
+        qp_result = osqp_solver.Solve(qp_prog, None, osqp_options)
         t_qp = time.time() - t0
         total_qp_time += t_qp
 
