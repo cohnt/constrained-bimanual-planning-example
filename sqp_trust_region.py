@@ -2,33 +2,36 @@ import time
 import numpy as np
 from pydrake.solvers import MathematicalProgram, OsqpSolver, SolutionResult
 
-def compute_cost_and_grad(prog, x, eps=1e-7):
+from pydrake.autodiffutils import InitializeAutoDiff, ExtractGradient, ExtractValue
+
+def compute_cost_and_grad(prog, x):
     """
-    Evaluates cost f(x) and cost gradient g(x) = grad f(x) using finite differences.
+    Evaluates cost f(x) and cost gradient g(x) = grad f(x) using Drake Native C++ AutoDiff.
     """
     costs = prog.GetAllCosts()
-    def eval_f(val_x):
-        tot = 0.0
-        for b in costs:
-            idx = prog.FindDecisionVariableIndices(b.variables())
-            tot += np.sum(b.evaluator().Eval(val_x[idx]))
-        return tot
-
-    f_0 = eval_f(x)
     n = len(x)
+    f_0 = 0.0
     grad = np.zeros(n)
-    for i in range(n):
-        x_plus = x.copy()
-        x_plus[i] += eps
-        x_minus = x.copy()
-        x_minus[i] -= eps
-        grad[i] = (eval_f(x_plus) - eval_f(x_minus)) / (2.0 * eps)
+
+    for b in costs:
+        idx = prog.FindDecisionVariableIndices(b.variables())
+        evaluator = b.evaluator()
+        x_sub = x[idx]
+        x_ad = InitializeAutoDiff(x_sub)
+        y_ad = evaluator.Eval(x_ad)
+        
+        f_0 += float(np.sum(ExtractValue(y_ad)))
+        J_sub = ExtractGradient(y_ad)
+        if J_sub.ndim == 1:
+            grad[idx] += J_sub
+        else:
+            grad[idx] += np.sum(J_sub, axis=0)
 
     return f_0, grad
 
-def compute_constraints_and_jacobians(prog, x, eps=1e-7):
+def compute_constraints_and_jacobians(prog, x):
     """
-    Evaluates all constraints c(x) and their Jacobians J = dc/dx using finite differences.
+    Evaluates all constraints c(x) and their Jacobians J = dc/dx using Drake Native C++ AutoDiff.
     Returns a list of dicts containing linearized constraint data.
     """
     constraints = prog.GetAllConstraints()
@@ -38,17 +41,14 @@ def compute_constraints_and_jacobians(prog, x, eps=1e-7):
         idx = prog.FindDecisionVariableIndices(b.variables())
         evaluator = b.evaluator()
         x_sub = x[idx]
-        val_0 = evaluator.Eval(x_sub)
-        m = len(val_0)
-        n_sub = len(idx)
+        
+        x_ad = InitializeAutoDiff(x_sub)
+        y_ad = evaluator.Eval(x_ad)
 
-        J_sub = np.zeros((m, n_sub))
-        for j in range(n_sub):
-            x_plus = x_sub.copy()
-            x_plus[j] += eps
-            x_minus = x_sub.copy()
-            x_minus[j] -= eps
-            J_sub[:, j] = (evaluator.Eval(x_plus) - evaluator.Eval(x_minus)) / (2.0 * eps)
+        val_0 = ExtractValue(y_ad).flatten()
+        J_sub = ExtractGradient(y_ad)
+        if J_sub.ndim == 1:
+            J_sub = J_sub.reshape(1, -1)
 
         lb = evaluator.lower_bound()
         ub = evaluator.upper_bound()
