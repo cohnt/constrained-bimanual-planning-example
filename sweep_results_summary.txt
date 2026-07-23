@@ -1,0 +1,14 @@
+==================================================================================================================
+BEST HYPERPARAMETERS PERFORMANCE COMPARISON SUMMARY
+==================================================================================================================
+Category               | Configuration / Hyperparameters        | Success  | Feasible | Time (s)   | Optimal Cost
+------------------------------------------------------------------------------------------------------------------
+SNOPT Standard         | Major opt_tol = 1e-1 (Original Baseline) | True     | True     | 2.03       | 1.5877      
+SNOPT Standard         | Major opt_tol = 1e-2                   | True     | True     | 2.06       | 1.5877      
+SNOPT Standard         | Major opt_tol = 1e-3                   | True     | True     | 2.05       | 1.5877      
+SNOPT Standard         | Major opt_tol = 1e-6 (Default Strict)  | False    | True     | 19.38      | 1.3581      
+IPOPT Standard         | Special Penalty Line Search (Baseline) | True     | True     | 40.88      | 1.3606      
+IPOPT Standard         | Default Strict (No Special Options)    | False    | True     | 60.05      | 1.3814      
+SNOPT Trust Region     | TR (delta_0=0.25, opt_tol=1e-3)        | True     | True     | 1.18       | 1.6299      
+SNOPT Trust Region     | TR (delta_0=0.25, opt_tol=1e-2)        | True     | True     | 1.22       | 1.6299      
+SNOPT Trust Region     | TR (delta_0=0.25, opt_tol=1e-1)        | True     | True     | 1.20       | 1.6299      
