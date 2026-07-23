@@ -128,20 +128,44 @@ def compute_exact_cost_hessian(prog, n, eps=1e-5):
     H_psd = 0.5 * (H_psd + H_psd.T) + 1e-3 * np.eye(n)
     return H_psd
 
-def solve_sqp_trust_region(prog, max_iters=25, delta_0=0.10, delta_min=1e-5, delta_max=2.0, mu=100.0):
+def update_damped_bfgs(H, s, y):
     """
-    Fast L1-Penalty SQP Trust Region solver using OSQP backend.
+    Powell's Damped BFGS update.
+    Guarantees H_{k+1} is symmetric positive definite using ONLY 1st-order gradients.
+    """
+    sy = np.dot(s, y)
+    Hs = H @ s
+    sHs = np.dot(s, Hs)
+
+    if sHs <= 1e-12:
+        return H
+
+    if sy >= 0.2 * sHs:
+        theta = 1.0
+        r = y
+    else:
+        theta = (0.8 * sHs) / (sHs - sy)
+        r = theta * y + (1.0 - theta) * Hs
+
+    sr = np.dot(s, r)
+    if sr <= 1e-12:
+        return H
+
+    H_next = H + np.outer(r, r) / sr - np.outer(Hs, Hs) / sHs
+    # Symmetrize
+    return 0.5 * (H_next + H_next.T)
+
+def solve_sqp_trust_region(prog, max_iters=100, delta_0=0.10, delta_min=1e-5, delta_max=2.0, mu=100.0):
+    """
+    L1-Penalty SQP Trust Region solver using Powell's Damped BFGS (1st-order gradients only).
     """
     vars_all = prog.decision_variables()
     n = len(vars_all)
     x_k = prog.GetInitialGuess(vars_all).copy()
     delta_k = delta_0
 
-    # Initialize tridiagonal trajectory Hessian H_k
-    H_k = np.eye(n) * 2.0
-    for i in range(n - 8):
-        H_k[i, i + 8] = -1.0
-        H_k[i + 8, i] = -1.0
+    # Initialize scaled diagonal Hessian H0
+    H_k = np.eye(n) * 1.0
 
     def eval_merit(x, penalty_weight=mu):
         f_val, _ = compute_cost_and_grad(prog, x)
@@ -246,16 +270,11 @@ def solve_sqp_trust_region(prog, max_iters=25, delta_0=0.10, delta_min=1e-5, del
         if act_red > 1e-4 or (cand_feas and f_cand < f_k):
             accepted_steps += 1
 
-            # Update BFGS Hessian
+            # Update Damped BFGS Hessian (1st-order gradients only)
             s_k = p_val
             _, g_cand = compute_cost_and_grad(prog, x_cand)
             y_k = g_cand - g_k
-            sy = np.dot(s_k, y_k)
-            if sy > 1e-8:
-                Hs = H_k @ s_k
-                sHs = np.dot(s_k, Hs)
-                if sHs > 1e-8:
-                    H_k += np.outer(y_k, y_k) / sy - np.outer(Hs, Hs) / sHs
+            H_k = update_damped_bfgs(H_k, s_k, y_k)
 
             x_k = x_cand.copy()
             f_k = f_cand
