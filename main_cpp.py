@@ -648,6 +648,43 @@ def run_pipeline(strip_special_optimizer_settings=False, use_solver="snopt", use
         is_feas, max_viol = sqp_trust_region.eval_feasibility(trajopt.prog(), x_sol)
         print(f"OSQP SQP-TR Completed in {t_solve:.3f}s (QP time). Optimal Cost: {sol_cost:.4f}, Feasible: {is_feas}")
         return True, is_feas, t_solve, sol_cost
+    elif use_solver == "osqp+snopt":
+        import sqp_trust_region
+        print("\n[Phase 1] Running Custom SQP-TR to stall point...")
+        x_stall, cost_stall, t_sqp = sqp_trust_region.solve_sqp_trust_region(trajopt.prog(), max_iters=max_iters, delta_0=delta_0)
+        is_feas_stall, max_viol_stall = sqp_trust_region.eval_feasibility(trajopt.prog(), x_stall)
+        print(f"SQP-TR stall: cost={cost_stall:.4f}, feasible={is_feas_stall}, max_viol={max_viol_stall:.2e}")
+
+        print("\n[Phase 2] Warm-starting SNOPT from SQP-TR stall point...")
+        snopt_solver = SnoptSolver()
+        snopt_options = SolverOptions()
+        snopt_options.SetOption(CommonSolverOption.kPrintToConsole, False)
+        snopt_options.SetOption(CommonSolverOption.kPrintFileName, "snopt_from_stall.log")
+        snopt_options.SetOption(snopt_solver.solver_id(), "Major print level", 1)
+        snopt_options.SetOption(snopt_solver.solver_id(), "Timing level", 3)
+        snopt_options.SetOption(snopt_solver.solver_id(), "Time Limit", 120)
+        snopt_options.SetOption(snopt_solver.solver_id(), "Major optimality tolerance", 1e-4)
+
+        t0_snopt = time.time()
+        result_snopt = snopt_solver.Solve(trajopt.prog(), x_stall, snopt_options)
+        t_snopt = time.time() - t0_snopt
+
+        if result_snopt.is_success():
+            x_snopt = result_snopt.GetSolution(trajopt.prog().decision_variables())
+            cost_snopt = result_snopt.get_optimal_cost()
+            is_feas_snopt, max_viol_snopt = sqp_trust_region.eval_feasibility(trajopt.prog(), x_snopt)
+            print(f"SNOPT from stall: cost={cost_snopt:.4f}, feasible={is_feas_snopt}, max_viol={max_viol_snopt:.2e}, time={t_snopt:.2f}s")
+            delta = cost_snopt - cost_stall
+            if delta < -0.1:
+                print(f"  --> SNOPT ESCAPED the stall! (delta={delta:+.4f}) Stall is NOT a local minimum.")
+            elif abs(delta) < 0.1:
+                print(f"  --> SNOPT stayed near stall point (delta={delta:+.4f}). Stall IS a true local minimum.")
+            else:
+                print(f"  --> SNOPT worsened from stall (delta={delta:+.4f}).")
+            return True, is_feas_snopt, t_sqp + t_snopt, cost_snopt
+        else:
+            print(f"SNOPT failed from stall (time={t_snopt:.2f}s). Returning SQP-TR stall result.")
+            return True, is_feas_stall, t_sqp + t_snopt, cost_stall
     else:
         raise ValueError(f"Unknown solver {use_solver}")
 
@@ -699,7 +736,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--strip-options", action="store_true", help="Strip special optimizer options")
     parser.add_argument("--trust-region", action="store_true", help="Use custom Trust Region loop")
-    parser.add_argument("--solver", type=str, default="snopt", choices=["snopt", "ipopt", "osqp"])
+    parser.add_argument("--solver", type=str, default="snopt", choices=["snopt", "ipopt", "osqp", "osqp+snopt"])
     parser.add_argument("--opt-tolerance", type=float, default=None, help="Custom SNOPT Major optimality tolerance")
     parser.add_argument("--delta-0", type=float, default=0.25, help="Initial trust region radius")
     parser.add_argument("--max-iters", type=int, default=20, help="Max TR iterations")
