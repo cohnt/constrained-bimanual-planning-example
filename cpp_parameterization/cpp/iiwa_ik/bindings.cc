@@ -46,10 +46,22 @@ PYBIND11_MODULE(_iiwa_ik, m) {
            py::arg("minimum_distance_lower_bound_constraint"));
   py::class_<IiwaBimanualPathCost, drake::solvers::Cost,
              std::shared_ptr<IiwaBimanualPathCost>>(m, "IiwaBimanualPathCost")
-      .def(py::init<int, int, bool, bool, bool, double, bool>(),
+      .def(py::init<int, int, bool, bool, bool, double, bool, double>(),
            py::arg("num_positions"), py::arg("num_control_points"),
            py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"),
-           py::arg("grasp_distance"), py::arg("square"));
+           py::arg("grasp_distance"), py::arg("square"),
+           py::arg("scale") = 1.0);
+  py::class_<IiwaBimanualKineticEnergyPathCost, drake::solvers::Cost,
+             std::shared_ptr<IiwaBimanualKineticEnergyPathCost>>(
+      m, "IiwaBimanualKineticEnergyPathCost")
+      .def(py::init<int, int, bool, bool, bool, double,
+                    const drake::multibody::MultibodyPlant<double> &, double>(),
+           py::arg("num_positions"), py::arg("num_control_points"),
+           py::arg("shoulder_up"), py::arg("elbow_up"), py::arg("wrist_up"),
+           py::arg("grasp_distance"), py::arg("plant"), py::arg("scale") = 1.0,
+           // The cost holds a bare pointer to the plant, so the plant must
+           // outlive it.
+           py::keep_alive<1, 8>());
   m.def("MakeParameterization", &MakeParameterization, py::arg("shoulder_up"),
         py::arg("elbow_up"), py::arg("wrist_up"), py::arg("grasp_distance"));
 }

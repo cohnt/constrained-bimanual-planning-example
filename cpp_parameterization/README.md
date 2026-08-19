@@ -1,3 +1,19 @@
+# Contents
+
+The C++ implementation mirrors the Python one in `src/`, and the two are kept deliberately in sync.
+
+- `cpp/iiwa_ik/iiwa_analytic_ik.h` -- the analytic IK and the parameterization itself, templated on the scalar type.
+- `cpp/iiwa_ik/parameterization.cc` -- wraps the above in an `IrisParameterizationFunction`.
+- `cpp/iiwa_ik/constraints.cc` -- the reachability, subordinate joint limit, collision-free, and all-in-one feasibility constraints.
+- `cpp/iiwa_ik/costs.cc` -- path costs.
+  - `IiwaBimanualPathCost` accumulates the squared (`square=true`) or unsquared distance between consecutive control points, measured in the *full* configuration space.
+  - `IiwaBimanualKineticEnergyPathCost` accumulates the same displacement, but measured under the mass matrix, i.e. `sum_i df_i^T M(f(q~_mid,i)) df_i`. This is the kinetic energy Riemannian metric of [Kyaw and Kelly](https://arxiv.org/abs/2602.00992), with the metric evaluated at the midpoint of each pair of control points (their midpoint approximation). It needs a `MultibodyPlant` to get the mass matrix from, and that plant must outlive the cost. Unlike the other costs it is *not* thread safe, since it holds contexts that it writes into, and it does not support symbolic evaluation.
+  - Both costs take an optional trailing `scale`, which multiplies the accumulated total. It does not change the minimizer, but it lets a caller normalize costs of differing physical units onto a common numerical scale.
+
+Note that the gradient of the kinetic energy cost is not computed by simply propagating AutoDiff through the whole cost.
+Each segment depends on only two control points, so each segment is evaluated against a *local* AutoDiff vector of `2 * num_positions` partial derivatives, and the result is chained into the full gradient.
+That keeps the expensive mass matrix computation from propagating `num_positions * num_control_points` partial derivatives.
+
 # Building and Testing
 
 To build this C++ project, you will have to download and use the [compiled Drake binaries](https://github.com/RobotLocomotion/drake/releases) or [compile Drake from source](https://drake.mit.edu/from_source.html).
@@ -58,6 +74,15 @@ python3 test/test.py;
 **Warning:** `-ffast-math` is potentially dangerous, but I haven't experienced any issues with it.
 
 **Warning:** Do not use `-march=native here` -- it can cause errors related to Eigen allocation and pybind.
+
+## What the test checks
+
+`test/test.py` prints one `True` per check, and every line should read `True`.
+The first few checks are an ABI smoke test: they confirm that the pybind11 classes are recognized as Drake `Constraint` and `IrisParameterizationFunction` subclasses, and that the parameterization evaluates.
+If those print `False`, or if you get a segfault, your `PYTHONPATH` is almost certainly pointing at a different Drake installation than the one you compiled against.
+
+The remaining checks are numerical, and are labelled so a failure can be tracked down.
+They compare the costs against an independent NumPy reimplementation, compare their AutoDiff gradients against central finite differences, and check that the scale factor is applied and defaults to 1.
 
 # A Complete Build-and-Run Recipe
 

@@ -32,6 +32,8 @@ This repository serves primarily as a **tutorial and demonstration** of how to u
   - **Kinematic Trajectory Optimization:** refining RRT results using [`KinematicTrajectoryOptimization`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_kinematic_trajectory_optimization.html).
   - **Representing Trajectories:** transforming trajectories in the parameterized space back to the full configuration space using [`FunctionHandleTrajectory`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1trajectories_1_1_function_handle_trajectory.html).
   - **Dynamic Retiming:** retiming trajectories with [`Toppra`](https://drake.mit.edu/doxygen_cxx/classdrake_1_1multibody_1_1_toppra.html) to enforce velocity and acceleration limits.
+- **Comparing Trajectory Optimization Objectives**
+  - `scripts/compare_trajopt_metrics.py` benchmarks three objectives for the trajectory optimizer -- path energy in the parameterized space, path energy in the full configuration space, and **kinetic energy** (the mass matrix as a Riemannian metric tensor) -- against the resulting post-TOPPRA trajectory duration.
 
 ---
 
@@ -72,10 +74,57 @@ Coming soon! We are currently waiting for Deepnote to fix an issue with custom d
   - `models/old_shelves.dmd.yaml` -- **Scene description** defining the default environment layout for the examples.
 - **notebooks/** -- Contains Jupyter notebooks demonstrating example workflows.
   - `notebooks/main.ipynb` -- Main tutorial notebook demonstrating the bimanual planning workflow end-to-end.
+- **scripts/** -- Standalone experiments that use the same machinery as the notebooks, but run headless.
+  - `scripts/compare_trajopt_metrics.py` -- Compares trajectory optimization objectives by post-TOPPRA trajectory duration. See [Comparing trajectory optimization objectives](#comparing-trajectory-optimization-objectives) below.
 - **src/** -- Python source code implementing the core functionality of the examples.
   - `src/iiwa_analytic_ik.py` -- Analytic inverse kinematics implementation for the IIWA arm, used to construct the intrinsic parameterization.
   - `src/rrt.py` -- Simple bidirectional RRT implementation for sampling-based planning in the parameterized space.
   - `src/shortcut.py` -- Simple randomized shortcutting implementation for improving a piecewise-linear path.
+
+### Comparing trajectory optimization objectives
+
+Which objective the trajectory optimizer minimizes is a free choice, and it shows up downstream in how long the retimed trajectory takes to execute.
+`scripts/compare_trajopt_metrics.py` measures that.
+It compares three objectives, all of them sums over consecutive B-spline control points that differ only in the metric tensor:
+
+| Objective | Cost | Metric tensor |
+|---|---|---|
+| Parameterized path energy | $\sum_i \lVert \tilde{q}_i - \tilde{q}_{i-1} \rVert^2$ | $I$ |
+| C-space path energy | $\sum_i \lVert f(\tilde{q}_i) - f(\tilde{q}_{i-1}) \rVert^2$ | $J^\top J$ |
+| Kinetic energy | $\sum_i \Delta f_i^\top M(f(\tilde{q}_{\text{mid},i})) \Delta f_i$ | $J^\top M J$ |
+
+Here $f$ is the parameterization, $J$ its Jacobian, $M$ the mass matrix, and $\Delta f_i = f(\tilde{q}_i) - f(\tilde{q}_{i-1})$.
+The parameterized metric is what the RRT and the shortcutter optimize, but it is physically meaningless -- it weights the leader arm's seven joints and the follower arm's self-motion angle equally.
+The C-space metric is what the notebooks use.
+The kinetic energy metric follows [Kyaw and Kelly](https://arxiv.org/abs/2602.00992), who take the mass-inertia matrix as a Riemannian metric tensor, so that geodesics minimize the kinetic energy needed to traverse the path in a given time.
+Evaluating $M$ at the midpoint of each pair of control points (rather than at an endpoint) is their midpoint approximation, which is third-order accurate in the separation between configurations.
+
+For each of the 6 ordered pairs of the three key configurations, the script runs 10 BiRRT plans, shortcuts each, and then optimizes every one of those initial guesses under each objective, so the comparison is paired.
+It reports post-TOPPRA duration alongside solve time, success rate, dense feasibility, the value of every metric on every solution, and which of the velocity, acceleration and torque limits is binding after retiming.
+It also reports the energy of the executed trajectory -- mechanical work, positive work, the thermal proxy $\int \tau^2$, the integrated kinetic energy and the peak kinetic energy -- since an objective that is inertia aware may pay off in energy rather than in time.
+
+This uses the C++ parameterization, so [build it](./cpp_parameterization/README.md) first.
+```
+export PYTHONPATH=$DRAKE_INSTALL_DIR/lib/python3.10/site-packages:$PYTHONPATH;
+export OMP_NUM_THREADS=1;  # The script parallelizes over plans, so don't oversubscribe.
+python3 scripts/compare_trajopt_metrics.py --jobs $(nproc);
+```
+Add `--smoke` to run a single plan first as a sanity check, and `--analyze-only results/trajopt_metric_comparison.csv` to re-print the summary without re-running the experiment.
+
+Several variations can be run independently of one another, each writing its own CSV via `--label`:
+
+| Flag | What it changes |
+|---|---|
+| `--toppra-limits no-acceleration` | Retimes against the velocity and torque limits only. Worth trying because the acceleration limit is what binds in the default setup, which leaves a mass-matrix-based objective little to work with. |
+| `--no-shortcut` | Initializes the optimizer from the raw RRT path rather than the shortcut one, to separate the shortcutter's contribution from the objective's. |
+| `--solver ipopt` | Uses IPOPT instead of SNOPT, with the settings commented into `main_cpp.ipynb`. |
+| `--payload-mass 28` | Gives the arms a heavy object to carry, split evenly between the two grippers. 28 kg is the combined rated payload of the two IIWA-14 arms. The payload has no collision geometry, so the planned paths stay comparable to a run without it. |
+| `--torque-limit-scale 0.3` | Derates every joint's torque limit to a fraction of its hardware value. The IIWA-14 is built for high torque rather than high speed, so at nominal limits torque is never the binding constraint; derating is a stand-in for a genuinely more torque-limited arm. Torque only starts to bind below about 45% of nominal. |
+
+A note on how solves are scored: a run counts if the trajectory it returns is actually feasible when densely sampled, **not** if the solver reported success.
+SNOPT exit codes 3 ("requested accuracy could not be achieved") and 41 ("current point cannot be improved") are not failures -- the solver returns a perfectly good point, it just cannot certify optimality to the requested tolerance.
+In practice every code-41 solve and nearly every code-3 solve returns a feasible trajectory, so discarding them would throw away a third of the data and bias the comparison.
+The summary prints the exit code against usability so this can be checked rather than assumed, and lists the genuinely unusable solves individually.
 
 ### Implementation Notes
 
@@ -84,6 +133,7 @@ Coming soon! We are currently waiting for Deepnote to fix an issue with custom d
 - Because Python code cannot easily be called in parallel from C++, IRIS-ZO is not highly performant without the C++ parameterization.
 - The sampling-based planning baselines (e.g., RRT) are simple and illustrative, intended for comparison rather than performance.
 - For the reachability constraint, we clip the inputs to $\cos^{-1}$ to the interval $[-0.9999,0.9999]$ so that the gradients are finite.
+- The kinetic energy cost needs the mass matrix, which is only available in C++, so unlike the other costs it has no Python counterpart.
 
 I've also done my best to include comments in the tutorial notebook and python files to add further clarity.
 
@@ -121,6 +171,16 @@ If you specifically use IRIS-NP2 or IRIS-ZO in minimal coordinates, please cite 
 }
 ```
 (A journal version, which encompasses the region generation in minimal coordinates, is in preparation.)
+
+If you use the kinetic energy metric (the mass matrix as a Riemannian metric tensor, as used in `scripts/compare_trajopt_metrics.py`), please cite:
+```
+@article{kyaw2026geometry,
+  title={Geometry-Aware Sampling-Based Motion Planning on Riemannian Manifolds},
+  author={Kyaw, Phone Thiha and Kelly, Jonathan},
+  year={2026},
+  journal={arXiv preprint arXiv:2602.00992}
+}
+```
 
 If you use GcsTrajectoryOptimization, please cite:
 ```

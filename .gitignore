@@ -4,3 +4,8 @@ notebooks/snopt.log
 notebooks/trajectory.html
 cpp_parameterization/build/*
 *.so
+results/
+# Exception: the seven CSVs backing docs/trajopt_metric_findings.md are
+# force-added, so that report's numbers can be checked without a re-run.
+
+snopt.log
