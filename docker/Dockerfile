@@ -9,20 +9,16 @@ FROM ubuntu:24.04
 # =========
 # System deps
 # =========
+# Just enough to fetch and unpack Drake; Drake's own installer below pulls in
+# the rest (compiler, CMake, Eigen, and the runtime libraries pydrake needs).
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     wget \
+    ca-certificates \
     git \
-    build-essential \
-    cmake \
     python3 \
     python3-dev \
-    python3-pip \
     python3-venv \
-    libeigen3-dev \
     libfmt-dev \
-    libspdlog-dev \
-    libblas3 \
-    liblapack3 \
     && rm -rf /var/lib/apt/lists/*
 
 # =========
@@ -40,6 +36,15 @@ RUN mkdir -p /opt/drake && \
     rm drake-${DRAKE_VERSION}-noble.tar.gz
 
 ENV DRAKE_INSTALL_DIR=/opt/drake/drake
+
+# Let Drake install its own prerequisites rather than maintaining a duplicate
+# apt list here that silently rots. The noble binary flavor needs a handful of
+# libraries (libglib2.0-0t64, the GL/X stack, libgfortran5, ...) that are easy
+# to miss by hand; getting one wrong shows up only as an ImportError from
+# pydrake at runtime. Safe to run as root inside Docker.
+RUN DEBIAN_FRONTEND=noninteractive \
+    ${DRAKE_INSTALL_DIR}/share/drake/setup/install_prereqs -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # expose drake runtime bits
 ENV LD_LIBRARY_PATH="${DRAKE_INSTALL_DIR}/lib:${LD_LIBRARY_PATH:-}"
