@@ -73,8 +73,9 @@ RUN pip install \
 # =========
 # Clone your code
 # =========
-# TODO(nanobind): set the default back to `main` when merging this branch.
-ARG PROJECT_REF=nanobind
+# TODO(nanobind): set the default back to `trust-region-experiment` when merging
+# this branch.
+ARG PROJECT_REF=trust-region-experiment-nanobind
 RUN git clone -b ${PROJECT_REF} https://github.com/cohnt/constrained-bimanual-planning-example.git /opt/proj
 
 WORKDIR /opt/proj

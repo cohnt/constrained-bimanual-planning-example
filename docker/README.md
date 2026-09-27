@@ -60,8 +60,8 @@ If you encounter any issues running the Docker image on Apple Silicon, please [o
 If you want to build the Docker image locally, run
 ```
 docker build -t constrained-bimanual-planning-example:<your-tag> \
-    --build-arg PROJECT_REF=nanobind .
+    --build-arg PROJECT_REF=trust-region-experiment-nanobind .
 ```
 The image clones the project from GitHub rather than copying your working tree,
-so `PROJECT_REF` selects which branch is baked in. It defaults to `nanobind` on
+so `PROJECT_REF` selects which branch is baked in. It defaults to `trust-region-experiment-nanobind` on
 this branch; pass a different ref to build the image against another branch.
