@@ -53,12 +53,28 @@ This should run quickly, albeit not quite as fast as a fully local installation.
 
 The Python demonstration notebook `notebooks/main.ipynb` should run with
 ```
-pip install drake tqdm matplotlib networkx ipywidgets jupyter scipy pyyaml pydot
+pip install --extra-index-url https://drake-packages.csail.mit.edu/whl/nightly/ \
+    'drake==0.0.20260927' tqdm matplotlib networkx ipywidgets jupyter scipy pyyaml pydot
 ```
+This branch targets Drake's **nanobind** Python bindings.
+Drake is currently migrating from `pybind11` to `nanobind`, and the project-wide
+default is expected to change around 2026-12-01.
+Until then, the nanobind bindings are only published as nightly builds, which is
+why the command above pins a nightly version from Drake's nightly wheel index
+rather than installing `drake` from PyPI.
+(On that index, the plain `0.0.YYYYMMDD` wheels are the nanobind ones -- they are
+built against CPython's stable ABI -- while the `0.0.YYYYMMDDb1` wheels are the
+`pybind11` fallback.)
+Once Drake flips the default, this goes back to being a plain `pip install drake`.
 
 #### Running with C++
 
-If you want to use the [C++ implementation](./cpp_parameterization) of the parameterization, you'll first have to download a [binary installation of Drake](https://github.com/RobotLocomotion/drake/releases) or [build it from source](https://drake.mit.edu/from_source.html).
+If you want to use the [C++ implementation](./cpp_parameterization) of the parameterization, you'll first have to download a binary installation of Drake or [build it from source](https://drake.mit.edu/from_source.html).
+Because this branch targets nanobind, the binary you want is a nightly tarball with an `a1` suffix, e.g.
+```
+wget https://drake-packages.csail.mit.edu/drake/nightly/drake-0.0.20260927a1-noble.tar.gz
+```
+(The plain `drake-0.0.YYYYMMDD-noble.tar.gz` tarballs and the [tagged releases](https://github.com/RobotLocomotion/drake/releases) are still `pybind11` builds.)
 Then, you can [compile the C++ implementation directly](./cpp_parameterization/README.md).
 The C++ implementation gives major speedups, bringing region generation down to ~1.2 seconds on my laptop!
 Similarly, trajectory optimization only takes a few seconds, even with the computationally heavy parameterized costs.

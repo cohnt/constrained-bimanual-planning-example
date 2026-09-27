@@ -169,7 +169,7 @@ python3 cpp_parameterization/test/test.py   # the only test: ABI smoke check + n
 
 `test/test.py` is the only test, and its convention is one bare `print(...)` of a boolean per check;
 every line should read `True`. The first four checks are an ABI smoke test — they confirm the
-pybind11 classes are recognized as Drake `Constraint`/`IrisParameterizationFunction` subclasses and
+nanobind classes are recognized as Drake `Constraint`/`IrisParameterizationFunction` subclasses and
 that the parameterization evaluates. An ABI mismatch typically shows up as those `isinstance` checks
 printing `False`, or as a segfault. The checks after them are numerical (cost values against a NumPy
 reimplementation, AutoDiff gradients against central finite differences, the `scale` factor) and are
@@ -177,9 +177,9 @@ labelled, since an unlabelled `False` in a long list is hard to track down. Add 
 same style rather than reaching for a test framework.
 
 For an optimized build (`-O3 -flto -ffast-math ...`) see `cpp_parameterization/README.md`. Do **not**
-add `-march=native` — it causes Eigen alignment/pybind failures.
+add `-march=native` — it causes Eigen alignment/binding failures.
 
-The build writes `_iiwa_ik.cpython-*.so` directly into `cpp_parameterization/python/iiwa_ik/`, which
+The build writes `_iiwa_ik.abi3.so` directly into `cpp_parameterization/python/iiwa_ik/`, which
 is what the notebook adds to `sys.path`. `.so` files are gitignored, so a fresh clone must build
 before `main_cpp.ipynb` will run.
 

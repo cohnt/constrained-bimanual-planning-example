@@ -7,8 +7,14 @@ The Docker image comes fully configured with Drake, all Python packages, and C++
 
 The Docker image is available on [Docker Hub](https://hub.docker.com/r/cohnt/constrained-bimanual-planning-example):
 ```
-docker pull cohnt/constrained-bimanual-planning-example:latest
+docker pull cohnt/constrained-bimanual-planning-example:nanobind
 ```
+
+*Note:* This branch targets Drake's `nanobind` Python bindings, and uses the
+separate `:nanobind` tag. The `:latest` tag is still the `pybind11` build from
+`main`. Once Drake's project-wide default becomes `nanobind` (expected around
+2026-12-01) this branch merges into `main` and `:nanobind` folds back into
+`:latest`.
 
 ## Launching and Using the Docker Image
 
@@ -17,7 +23,7 @@ You can launch an interactive session with the Docker image, exposing the necess
 docker run -it --rm \
     -p 8888:8888 \
     -p 7000:7000 \
-    cohnt/constrained-bimanual-planning-example:latest \
+    cohnt/constrained-bimanual-planning-example:nanobind \
     /bin/bash
 ```
 *Note:* The `--rm` flag will remove the container when it exits.
@@ -53,5 +59,9 @@ If you encounter any issues running the Docker image on Apple Silicon, please [o
 
 If you want to build the Docker image locally, run
 ```
-docker build -t constrained-bimanual-planning-example:<your-tag> .
+docker build -t constrained-bimanual-planning-example:<your-tag> \
+    --build-arg PROJECT_REF=kinetic-energy-metric-nanobind .
 ```
+The image clones the project from GitHub rather than copying your working tree,
+so `PROJECT_REF` selects which branch is baked in. It defaults to `kinetic-energy-metric-nanobind` on
+this branch; pass a different ref to build the image against another branch.
